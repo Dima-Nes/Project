@@ -1,34 +1,36 @@
 #include <SFML/Graphics.hpp>
-#include "sqlite3.h"
+#include "Database.h"
 #include <iostream>
 
 int main() {
-    // 1. Проверка SFML
-    sf::RenderWindow window(sf::VideoMode(200, 200), "IT WORKS!");
-    sf::CircleShape shape(100.f);
-    shape.setFillColor(sf::Color::Green);
+    // Включаем поддержку русского языка в консоли (чтобы не было кракозябр)
+    setlocale(LC_ALL, "");
 
-    // 2. Проверка SQLite
-    sqlite3* db;
-    int rc = sqlite3_open("test.db", &db);
-    if (rc) {
-        std::cerr << "Error opening SQLite database: " << sqlite3_errmsg(db) << std::endl;
+    Database db;
+    if (!db.connect("GameData.db")) {
+        return -1; // Если базы нет, выходим
     }
-    else {
-        std::cout << "Opened database successfully!" << std::endl;
-        sqlite3_close(db);
+    db.createTables();
+
+    // Простое меню для теста
+    std::cout << "1. Регистрация\n2. Вход\nВыберите действие: ";
+    int choice;
+    std::cin >> choice;
+
+    std::string login, pass;
+    std::cout << "Введите логин: ";
+    std::cin >> login;
+    std::cout << "Введите пароль: ";
+    std::cin >> pass;
+
+    if (choice == 1) {
+        db.registerUser(login, pass);
+    }
+    else if (choice == 2) {
+        db.loginUser(login, pass);
     }
 
-    while (window.isOpen()) {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
-        }
-        window.clear();
-        window.draw(shape);
-        window.display();
-    }
-
+    // Пока уберем создание окна SFML, чтобы сосредоточиться на логике
+    system("pause");
     return 0;
 }
