@@ -1,0 +1,10 @@
+.vs/
+x64/
+Debug/
+*.db
+*.ipch
+*.obj
+*.pdb
+*.user
+libs/SFML/doc/
+libs/SFML/examples/
