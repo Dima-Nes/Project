@@ -22,6 +22,14 @@ private:
     Texture splashTexture;
     Sprite splashSprite;
 
+    Clock splashTimer; //таймер для заставки
+    float splashTransparency; //прозрачность заставки
+
+    Font mainFont;
+    Text authTitle;
+    Text loginBtn;
+    Text registerBtn;
+    Text exitBtn;
 
 public:
     Game();
