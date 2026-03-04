@@ -18,26 +18,35 @@ Game::Game() {
 
     //Кнопки:
     mainFont.loadFromFile("assets/Genesis.otf");
+
     authTitle.setFont(mainFont);
     authTitle.setString("LOST HORIZONS");
     authTitle.setCharacterSize(60);
-    authTitle.setPosition(1920 / 2.f - 400.f, 150.f);
+    FloatRect bounds = authTitle.getLocalBounds();
+    authTitle.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    authTitle.setPosition(1920 / 2.f, 150.f);
 
 
     loginBtn.setFont(mainFont);
     loginBtn.setString(L"Вход");
     loginBtn.setCharacterSize(45);
-    loginBtn.setPosition(1920 / 2.f - 100.f, 400.f);
+    bounds = loginBtn.getLocalBounds(); //получаем размеры прямоугольника в котором находиться наш текст
+    loginBtn.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    loginBtn.setPosition(1920 / 2.f, 400.f);
 
     registerBtn.setFont(mainFont);
-    registerBtn.setString("Регистрация");
+    registerBtn.setString(L"Регистрация");
     registerBtn.setCharacterSize(45);
-    registerBtn.setPosition(1920 / 2.f - 100.f, 500.f);
+    bounds = registerBtn.getLocalBounds();
+    registerBtn.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    registerBtn.setPosition(1920 / 2.f, 500.f);
 
     exitBtn.setFont(mainFont);
-    exitBtn.setString("Выход");
+    exitBtn.setString(L"Выход");
     exitBtn.setCharacterSize(45);
-    exitBtn.setPosition(1920 / 2.f - 100.f, 600.f);
+    bounds = exitBtn.getLocalBounds();
+    exitBtn.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    exitBtn.setPosition(1920 / 2.f, 600.f);
 }
 
 void Game::run() {
@@ -91,19 +100,21 @@ void Game::render() {
         Vector2i mousePos = Mouse::getPosition(window);
         Vector2f worldPos = window.mapPixelToCoords(mousePos); // Переводим пиксели в координаты мира
 
-        // Проверка для кнопки Login
-        if (loginBtn.getGlobalBounds().contains(worldPos)) {
-            loginBtn.setFillColor(Color::Yellow); // Подсвечиваем
-            // Плавное увеличение
-            if (loginBtn.getScale().x < 1.2f) {
-                loginBtn.setScale(loginBtn.getScale().x + 0.01f, loginBtn.getScale().y + 0.01f);
+        Text* allButtons[] = { &loginBtn, &registerBtn, &exitBtn };
+
+        // Проходимся по каждой кнопке в этом списке
+        for (Text* btn : allButtons) {
+            if (btn->getGlobalBounds().contains(worldPos)) {
+                btn->setFillColor(Color::Yellow);
+                if (btn->getScale().x < 1.15f) {
+                    btn->setScale(btn->getScale().x + 0.01f, btn->getScale().y + 0.01f);
+                }
             }
-        }
-        else {
-            loginBtn.setFillColor(Color::White);
-            // Возвращаем размер обратно
-            if (loginBtn.getScale().x > 1.0f) {
-                loginBtn.setScale(loginBtn.getScale().x - 0.01f, loginBtn.getScale().y - 0.01f);
+            else {
+                btn->setFillColor(Color::White);
+                if (btn->getScale().x > 1.0f) {
+                    btn->setScale(btn->getScale().x - 0.01f, btn->getScale().y - 0.01f);
+                }
             }
         }
 
