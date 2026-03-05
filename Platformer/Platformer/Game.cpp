@@ -31,21 +31,21 @@ Game::Game() {
     loginBtn.setString(L"Вход");
     loginBtn.setCharacterSize(45);
     bounds = loginBtn.getLocalBounds(); //получаем размеры прямоугольника в котором находиться наш текст
-    loginBtn.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    loginBtn.setOrigin(bounds.left + bounds.width / 2.0f, bounds.top + bounds.height / 2.0f);
     loginBtn.setPosition(1920 / 2.f, 400.f);
 
     registerBtn.setFont(mainFont);
     registerBtn.setString(L"Регистрация");
     registerBtn.setCharacterSize(45);
     bounds = registerBtn.getLocalBounds();
-    registerBtn.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    registerBtn.setOrigin(bounds.left + bounds.width / 2.0f, bounds.top + bounds.height / 2.0f);
     registerBtn.setPosition(1920 / 2.f, 500.f);
 
     exitBtn.setFont(mainFont);
     exitBtn.setString(L"Выход");
     exitBtn.setCharacterSize(45);
     bounds = exitBtn.getLocalBounds();
-    exitBtn.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    exitBtn.setOrigin(bounds.left + bounds.width / 2.0f, bounds.top + bounds.height / 2.0f);
     exitBtn.setPosition(1920 / 2.f, 600.f);
 }
 
@@ -100,9 +100,8 @@ void Game::render() {
         Vector2i mousePos = Mouse::getPosition(window);
         Vector2f worldPos = window.mapPixelToCoords(mousePos); // Переводим пиксели в координаты мира
 
-        Text* allButtons[] = { &loginBtn, &registerBtn, &exitBtn };
-
-        // Проходимся по каждой кнопке в этом списке
+        Text* allButtons[] = { &loginBtn, &registerBtn, &exitBtn }; // Передаем указатели на кнопки что бы не менять их копии
+    
         for (Text* btn : allButtons) {
             if (btn->getGlobalBounds().contains(worldPos)) {
                 btn->setFillColor(Color::Yellow);
