@@ -1,37 +1,19 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-using namespace std;
-using namespace sf;
+#include "State.h"
 
-enum class GameState {
-    Splash,
-    Login,
-    Menu,
-    Playing
-};
+using namespace sf;
 
 class Game {
 private:
-    GameState currentState;
-    RenderWindow window;// основное окно программы
-    View gameView;//виртуальная камера
-    void handleEvents();
-    void update();
-    void render();
-
-    Texture splashTexture;
-    Sprite splashSprite;
-
-    Clock splashTimer; //таймер для заставки
-    float splashTransparency; //прозрачность заставки
-
-    Font mainFont;
-    Text authTitle;
-    Text loginBtn;
-    Text registerBtn;
-    Text exitBtn;
+    RenderWindow window;
+    State* currentState; // Тот самый "слот" для картриджа
 
 public:
     Game();
+    ~Game(); // Обязательно добавим деструктор для очистки памяти
+
     void run();
+    void update();
+    void render();
 };
