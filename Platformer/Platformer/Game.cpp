@@ -1,16 +1,16 @@
 #include "Game.h"
-#include "MainMenuState.h" // Подключаем конкретное меню
+#include "MainMenuState.h"
 
 Game::Game() {
-    window.create(VideoMode(1920, 1080), "My Game");
+    // Делаем на весь экран монитора
+    window.create(VideoMode::getDesktopMode(), "My Game", Style::Fullscreen);
     window.setFramerateLimit(60);
 
-    // При старте создаем главное меню
     currentState = new MainMenuState();
 }
 
 Game::~Game() {
-    delete currentState; // Чистим память при выходе
+    if (currentState) delete currentState;
 }
 
 void Game::update() {
@@ -18,22 +18,22 @@ void Game::update() {
     while (window.pollEvent(event)) {
         if (event.type == Event::Closed)
             window.close();
+
+        // Закрытие на Escape (в Fullscreen это важно)
+        if (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape)
+            window.close();
     }
 
-    // Передаем работу текущему состоянию
     if (currentState) {
         currentState->update(window);
     }
 }
 
 void Game::render() {
-    window.clear();
-
-    // Рисуем то, что велит текущее состояние
+    window.clear(Color::Black); // ОБЯЗАТЕЛЬНО: очищаем экран перед рисованием
     if (currentState) {
         currentState->render(window);
     }
-
     window.display();
 }
 
