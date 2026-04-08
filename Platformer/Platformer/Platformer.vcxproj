@@ -131,12 +131,15 @@
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainMenuState.cpp" />
-    <ClCompile Include="SplashStatecpp.cpp" />
+    <ClCompile Include="RegistrationState.cpp" />
+    <ClCompile Include="SplashState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Database.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="MainMenuState.h" />
+    <ClInclude Include="RegistrationState.h" />
+    <ClInclude Include="SplashState.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

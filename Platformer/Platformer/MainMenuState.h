@@ -14,6 +14,6 @@ private:
 public:
     MainMenuState(); // Конструктор (тут всё настроим)
 
-    void update(RenderWindow& window) override;
+    int update(RenderWindow& window) override;
     void render(RenderWindow& window) override;
 };

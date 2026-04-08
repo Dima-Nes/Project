@@ -1,28 +1,21 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "State.h"
+#include "MainMenuState.h"
+#include "RegistrationState.h"
 
 using namespace sf;
 
 class Game {
 private:
-    GameState currentState;
-    RenderWindow window;// основное окно программы
-    View gameView;//виртуальная камера
-    void handleEvents();
-    void update();
-    void render();
+    RenderWindow window;
+    MainMenuState* menu;
+    RegistrationState* registration;
 
-    Texture splashTexture;
-    Sprite splashSprite;
+    // 0 - Menu, 1 - Registration
+    int currentState;
 
-    Clock splashTimer; // Секундомер
-    float splashAlpha;
 public:
     Game();
-    ~Game(); // Обязательно добавим деструктор для очистки памяти
-
+    ~Game();
     void run();
-    void update();
-    void render();
 };

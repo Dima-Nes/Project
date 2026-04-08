@@ -1,10 +1,11 @@
 #include "MainMenuState.h"
 #include <iostream>
 
+using namespace std;
+
 MainMenuState::MainMenuState() {
-    // 1. ИСПРАВЛЕННЫЙ ПУТЬ: указываем папку assets и файл, который у тебя реально есть
+    // 1. Загрузка шрифта
     if (!mainFont.loadFromFile("assets/font.ttf")) {
-        // Если font.ttf не сработает, попробуй "assets/Comic.ttf"
         cout << "ERROR: Font not found in assets folder!" << endl;
     }
 
@@ -14,7 +15,7 @@ MainMenuState::MainMenuState() {
     loginBtn.setFont(mainFont);
     loginBtn.setString(L"Вход");
     loginBtn.setCharacterSize(60);
-    loginBtn.setFillColor(Color::White); // Явно задаем цвет
+    loginBtn.setFillColor(Color::White);
     loginBtn.setPosition(centerX, 400.0f);
     centerText(loginBtn);
 
@@ -35,33 +36,47 @@ MainMenuState::MainMenuState() {
 
 void MainMenuState::centerText(Text& text) {
     FloatRect textRect = text.getLocalBounds();
-    // Устанавливаем точку привязки в центр текста для корректной анимации увеличения
     text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
 }
 
-void MainMenuState::update(RenderWindow& window) {
-    // ВАЖНО: Получаем позицию мыши ОТНОСИТЕЛЬНО окна, а не экрана
+int MainMenuState::update(RenderWindow& window) { // Изменили void на int
+    static Clock animClock;
+    float dt = animClock.restart().asSeconds();
+
     Vector2i mousePos = Mouse::getPosition(window);
-    Vector2f mousePosF = window.mapPixelToCoords(mousePos); // Это делает код адаптивным!
+    Vector2f mousePosF = window.mapPixelToCoords(mousePos);
 
     Text* buttons[] = { &loginBtn, &registerBtn, &exitBtn };
+    int nextState = 0; // По умолчанию остаемся здесь
 
     for (auto* btn : buttons) {
-        if (btn->getGlobalBounds().contains(mousePosF)) {
-            // Анимация наведения
-            btn->setScale(1.2f, 1.2f);
-            btn->setFillColor(Color::Yellow);
+        bool hovered = btn->getGlobalBounds().contains(mousePosF);
+        float targetScale = hovered ? 1.2f : 1.0f;
+        Color targetColor = hovered ? Color::Yellow : Color::White;
 
-            if (Mouse::isButtonPressed(Mouse::Left)) {
-                // Логика нажатий
+        // Плавная анимация
+        float nextScale = btn->getScale().x + (targetScale - btn->getScale().x) * 8.0f * dt;
+        btn->setScale(nextScale, nextScale);
+
+        Color cur = btn->getFillColor();
+        btn->setFillColor(Color(
+            cur.r + (targetColor.r - cur.r) * 8.0f * dt,
+            cur.g + (targetColor.g - cur.g) * 8.0f * dt,
+            cur.b + (targetColor.b - cur.b) * 8.0f * dt
+        ));
+
+        // ОБРАБОТКА КЛИКА
+        if (hovered && Mouse::isButtonPressed(Mouse::Left)) {
+            if (btn == &registerBtn) {
+                return 1; // Сигнал: переходим в Регистрацию
             }
-        }
-        else {
-            // Возврат в обычное состояние
-            btn->setScale(1.0f, 1.0f);
-            btn->setFillColor(Color::White);
+            if (btn == &exitBtn) {
+                window.close();
+            }
+            // Здесь можно добавить return 2 для окна Входа
         }
     }
+    return 0; // Продолжаем работу в меню
 }
 
 void MainMenuState::render(RenderWindow& window) {
