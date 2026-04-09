@@ -39,7 +39,7 @@ void MainMenuState::centerText(Text& text) {
     text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
 }
 
-int MainMenuState::update(RenderWindow& window) { // Изменили void на int
+int MainMenuState::update(RenderWindow& window, Event& event) { // Изменили void на int
     static Clock animClock;
     float dt = animClock.restart().asSeconds();
 
@@ -67,12 +67,8 @@ int MainMenuState::update(RenderWindow& window) { // Изменили void на 
 
         // ОБРАБОТКА КЛИКА
         if (hovered && Mouse::isButtonPressed(Mouse::Left)) {
-            if (btn == &registerBtn) {
-                return 1; // Сигнал: переходим в Регистрацию
-            }
-            if (btn == &exitBtn) {
-                window.close();
-            }
+            if (btn == &registerBtn) return 1; // Переход в регистрацию
+            if (btn == &exitBtn) window.close();
             // Здесь можно добавить return 2 для окна Входа
         }
     }

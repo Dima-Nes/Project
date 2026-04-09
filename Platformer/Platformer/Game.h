@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include "MainMenuState.h"
 #include "RegistrationState.h"
+#include "SplashState.h" // 1. Обязательно подключаем
 
 using namespace sf;
 
@@ -10,8 +11,8 @@ private:
     RenderWindow window;
     MainMenuState* menu;
     RegistrationState* registration;
+    SplashState* splash; // 2. Добавляем указатель
 
-    // 0 - Menu, 1 - Registration
     int currentState;
 
 public:

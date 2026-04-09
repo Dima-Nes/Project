@@ -10,7 +10,7 @@ private:
 
 public:
     SplashState();
-    void update(RenderWindow& window) override;
+    int update(RenderWindow& window, Event& event) override;
     void render(RenderWindow& window) override;
     bool isFinished(); // Метод для проверки окончания заставки
 };
