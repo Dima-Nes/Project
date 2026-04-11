@@ -23,37 +23,27 @@ Game::~Game() {
 void Game::run() {
     while (window.isOpen()) {
         Event event;
-
-        // 1. ОТЛАВЛИВАЕМ СОБЫТИЯ (только ввод)
         while (window.pollEvent(event)) {
-            if (event.type == Event::Closed) 
-                window.close();
-        }
+            if (event.type == Event::Closed) window.close();
 
-        // 2. ОБНОВЛЯЕМ ЛОГИКУ (ВНЕ цикла событий!)
-        // Мы вызываем update и смотрим, что он вернул (nextState)
-        if (currentState == -1) { // Заставка
-            if (splash->update(window, event) == 1) { 
-                currentState = 0; // Если Splash вернул 1, идем в меню
+            // ВЫЗЫВАЕМ UPDATE ТУТ, чтобы ловить события по одному разу
+            if (currentState == -1) {
+                if (splash->update(window, event) == 1) currentState = 0;
             }
-        } 
-        else if (currentState == 0) { // Меню
-            if (menu->update(window, event) == 1) { 
-                currentState = 1; // Если Меню вернуло 1, идем в регистрацию
+            else if (currentState == 0) {
+                if (menu->update(window, event) == 1) currentState = 1;
+            }
+            else if (currentState == 1) {
+                int result = registration->update(window, event); // Сохраняем результат
+                if (result == 0) currentState = 0; // Если нажали "Назад"
             }
         }
-        else if (currentState == 1) { // Регистрация
-             registration->update(window, event);
-             // Здесь потом добавишь возврат в меню
-        }
 
-        // 3. РИСУЕМ (ВНЕ цикла событий!)
+        // РИСОВАНИЕ (остается снаружи цикла событий)
         window.clear(Color(30, 30, 30));
-
         if (currentState == -1) splash->render(window);
         else if (currentState == 0) menu->render(window);
         else if (currentState == 1) registration->render(window);
-
         window.display();
     }
 }

@@ -9,6 +9,6 @@ public:
     virtual ~State() {}
 
     // Эти функции обязаны быть у каждого окна
-    virtual int update(RenderWindow& window, Event& event) = 0;
+    virtual int update(RenderWindow& window, Event& event) = 0; 
     virtual void render(RenderWindow& window) = 0;
 };

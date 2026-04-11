@@ -10,7 +10,7 @@ MainMenuState::MainMenuState() {
     }
 
     float centerX = VideoMode::getDesktopMode().width / 2.0f;
-
+    
     // 2. Настройка кнопок
     loginBtn.setFont(mainFont);
     loginBtn.setString(L"Вход");
