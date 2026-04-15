@@ -23,10 +23,11 @@ Game::~Game() {
 void Game::run() {
     while (window.isOpen()) {
         Event event;
+
+        // 1. СНАЧАЛА ОБРАБАТЫВАЕМ ВСЕ СОБЫТИЯ
         while (window.pollEvent(event)) {
             if (event.type == Event::Closed) window.close();
 
-            // ВЫЗЫВАЕМ UPDATE ТУТ, чтобы ловить события по одному разу
             if (currentState == -1) {
                 if (splash->update(window, event) == 1) currentState = 0;
             }
@@ -34,12 +35,17 @@ void Game::run() {
                 if (menu->update(window, event) == 1) currentState = 1;
             }
             else if (currentState == 1) {
-                int result = registration->update(window, event); // Сохраняем результат
-                if (result == 0) currentState = 0; // Если нажали "Назад"
+                int res = registration->update(window, event); // Только события!
+                if (res == 0) currentState = 0;
             }
         }
 
-        // РИСОВАНИЕ (остается снаружи цикла событий)
+        // 2. ЗАТЕМ ОБНОВЛЯЕМ ЛОГИКУ АНИМАЦИЙ (вне цикла pollEvent!)
+        if (currentState == 1) {
+            registration->updateLogic(window); // Курсор будет мигать ВСЕГДА
+        }
+
+        // 3. РИСУЕМ
         window.clear(Color(30, 30, 30));
         if (currentState == -1) splash->render(window);
         else if (currentState == 0) menu->render(window);

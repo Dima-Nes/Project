@@ -11,14 +11,14 @@ SplashState::SplashState() {
         screenY / backgroundSprite.getLocalBounds().height
     );
 
-    alpha = 0;
+    alpha = 0.0f;
     backgroundSprite.setColor(Color(255, 255, 255, alpha));
 }
 
 int SplashState::update(RenderWindow& window, Event& event) {   
-    if (alpha < 255) {
-        alpha += 1.6;
-        if (alpha > 255) alpha = 255;
+    if (alpha < 255.0f) {
+        alpha += 1.6f;
+        //if (alpha > 255.0f) alpha = 255.0f;
         backgroundSprite.setColor(Color(255, 255, 255, alpha));
     }
     if (isFinished()) {
