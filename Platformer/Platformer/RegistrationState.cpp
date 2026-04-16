@@ -62,15 +62,33 @@ void RegistrationState::update(RenderWindow& window, Event& event) {
     Vector2f mousePos = window.mapPixelToCoords(Mouse::getPosition(window));
 
     // 1. Обработка ввода текста (через Event)
+    //if (event.type == Event::TextEntered && activeFieldIndex != -1) {
+    //    if (event.text.unicode == 8) { // Backspace
+    //        if (!fields[activeFieldIndex].content.empty())
+    //            fields[activeFieldIndex].content.pop_back();
+    //    }
+    //    else if (event.text.unicode < 128 || event.text.unicode > 159) { // Обычные символы
+    //        fields[activeFieldIndex].content += static_cast<wchar_t>(event.text.unicode);
+    //    }
+    //    fields[activeFieldIndex].userInput.setString(fields[activeFieldIndex].content);
+    //}
+    // 1. Обработка ввода текста (через Event)
     if (event.type == Event::TextEntered && activeFieldIndex != -1) {
         if (event.text.unicode == 8) { // Backspace
-            if (!fields[activeFieldIndex].content.empty())
+            if (!fields[activeFieldIndex].content.empty()) {
                 fields[activeFieldIndex].content.pop_back();
+            }
         }
-        else if (event.text.unicode < 128 || event.text.unicode > 159) { // Обычные символы
+        // Проверка: код символа должен быть печатным и длина строки меньше 10
+        else if (event.text.unicode >= 32 && fields[activeFieldIndex].content.size() < 14) {
             fields[activeFieldIndex].content += static_cast<wchar_t>(event.text.unicode);
         }
+
         fields[activeFieldIndex].userInput.setString(fields[activeFieldIndex].content);
+
+        // СБРОС СОБЫТИЯ: Чтобы символ не вводился каждый кадр, 
+        // превращаем обработанное событие в тип, который мы игнорируем.
+        event.type = Event::Count;
     }
 
     // 2. Логика кнопок и полей (Анимация и клики)
