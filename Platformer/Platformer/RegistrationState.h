@@ -30,6 +30,6 @@ private:
 
 public:
     RegistrationState();
-    void update(RenderWindow& window, Event& event);
+    int update(RenderWindow& window, Event& event);
     void render(RenderWindow& window);
 };

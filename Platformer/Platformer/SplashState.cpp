@@ -33,5 +33,5 @@ void SplashState::render(RenderWindow& window) {
 }
 
 bool SplashState::isFinished() {
-    return timer.getElapsedTime().asSeconds() > 4.0f;
+    return timer.getElapsedTime().asSeconds() > 0.3f/*4.0f - изначально*/;
 }

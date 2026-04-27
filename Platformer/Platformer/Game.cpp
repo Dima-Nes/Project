@@ -9,6 +9,7 @@ Game::Game() {
     splash = new SplashState();
     menu = new MainMenuState();
     registration = new RegistrationState();
+	login = new LoginState();
 
     // 4. МЕНЯЕМ НА -1, чтобы запуск начинался с заставки
     currentState = -1;
@@ -18,6 +19,7 @@ Game::~Game() {
     delete splash; // 5. Чистим память за собой
     delete menu;
     delete registration;
+    delete login;
 }
 
 void Game::run() {
@@ -41,10 +43,21 @@ void Game::run() {
             if (menu->update(window, event) == 1) { 
                 currentState = 1; // Если Меню вернуло 1, идем в регистрацию
             }
+             else if (menu->update(window, event) == 2) { 
+                currentState = 2; // Если Меню вернуло 2, идем в логин
+			}
         }
         else if (currentState == 1) { // Регистрация
-             registration->update(window, event);
+             //registration->update(window, event);
              // Здесь потом добавишь возврат в меню
+			if (registration->update(window, event) == 0) {
+                currentState = 0; // Если Регистрация вернула 0, возвращаемся в меню
+            }
+        }
+        else if (currentState == 2) { // Логин
+            if (login->update(window, event) == 0) {
+                currentState = 0; // Если Логин вернул 0, возвращаемся в меню
+            }
         }
 
         // 3. РИСУЕМ (ВНЕ цикла событий!)
@@ -53,6 +66,7 @@ void Game::run() {
         if (currentState == -1) splash->render(window);
         else if (currentState == 0) menu->render(window);
         else if (currentState == 1) registration->render(window);
+        else if (currentState == 2) login->render(window);
 
         window.display();
     }

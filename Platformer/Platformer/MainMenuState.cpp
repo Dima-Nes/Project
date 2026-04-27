@@ -4,30 +4,30 @@
 using namespace std;
 
 MainMenuState::MainMenuState() {
-    // 1. Р—Р°РіСЂСѓР·РєР° С€СЂРёС„С‚Р°
+    // 1. Загрузка шрифта
     if (!mainFont.loadFromFile("assets/font.ttf")) {
         cout << "ERROR: Font not found in assets folder!" << endl;
     }
 
     float centerX = VideoMode::getDesktopMode().width / 2.0f;
 
-    // 2. РќР°СЃС‚СЂРѕР№РєР° РєРЅРѕРїРѕРє
+    // 2. Настройка кнопок
     loginBtn.setFont(mainFont);
-    loginBtn.setString(L"Р’С…РѕРґ");
+    loginBtn.setString(L"Вход");
     loginBtn.setCharacterSize(60);
     loginBtn.setFillColor(Color::White);
     loginBtn.setPosition(centerX, 400.0f);
     centerText(loginBtn);
 
     registerBtn.setFont(mainFont);
-    registerBtn.setString(L"Р РµРіРёСЃС‚СЂР°С†РёСЏ");
+    registerBtn.setString(L"Регистрация");
     registerBtn.setCharacterSize(60);
     registerBtn.setFillColor(Color::White);
     registerBtn.setPosition(centerX, 550.0f);
     centerText(registerBtn);
 
     exitBtn.setFont(mainFont);
-    exitBtn.setString(L"Р’С‹С…РѕРґ");
+    exitBtn.setString(L"Выход");
     exitBtn.setCharacterSize(60);
     exitBtn.setFillColor(Color::White);
     exitBtn.setPosition(centerX, 700.0f);
@@ -39,7 +39,7 @@ void MainMenuState::centerText(Text& text) {
     text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
 }
 
-int MainMenuState::update(RenderWindow& window, Event& event) { // РР·РјРµРЅРёР»Рё void РЅР° int
+int MainMenuState::update(RenderWindow& window, Event& event) { // Изменили void на int
     static Clock animClock;
     float dt = animClock.restart().asSeconds();
 
@@ -47,14 +47,14 @@ int MainMenuState::update(RenderWindow& window, Event& event) { // РР·РјРµРЅРёР
     Vector2f mousePosF = window.mapPixelToCoords(mousePos);
 
     Text* buttons[] = { &loginBtn, &registerBtn, &exitBtn };
-    int nextState = 0; // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РѕСЃС‚Р°РµРјСЃСЏ Р·РґРµСЃСЊ
+    int nextState = 0; // По умолчанию остаемся здесь
 
     for (auto* btn : buttons) {
         bool hovered = btn->getGlobalBounds().contains(mousePosF);
         float targetScale = hovered ? 1.2f : 1.0f;
         Color targetColor = hovered ? Color::Yellow : Color::White;
 
-        // РџР»Р°РІРЅР°СЏ Р°РЅРёРјР°С†РёСЏ
+        // Плавная анимация
         float nextScale = btn->getScale().x + (targetScale - btn->getScale().x) * 8.0f * dt;
         btn->setScale(nextScale, nextScale);
 
@@ -65,14 +65,15 @@ int MainMenuState::update(RenderWindow& window, Event& event) { // РР·РјРµРЅРёР
             cur.b + (targetColor.b - cur.b) * 8.0f * dt
         ));
 
-        // РћР‘Р РђР‘РћРўРљРђ РљР›РРљРђ
+        // ОБРАБОТКА КЛИКА
         if (hovered && Mouse::isButtonPressed(Mouse::Left)) {
-            if (btn == &registerBtn) return 1; // РџРµСЂРµС…РѕРґ РІ СЂРµРіРёСЃС‚СЂР°С†РёСЋ
+            if (btn == &registerBtn) return 1; // Переход в регистрацию
+			if (btn == &loginBtn) return 2; // Переход в вход
             if (btn == &exitBtn) window.close();
-            // Р—РґРµСЃСЊ РјРѕР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ return 2 РґР»СЏ РѕРєРЅР° Р’С…РѕРґР°
+            // Здесь можно добавить return 2 для окна Входа
         }
     }
-    return 0; // РџСЂРѕРґРѕР»Р¶Р°РµРј СЂР°Р±РѕС‚Сѓ РІ РјРµРЅСЋ
+    return 0; // Продолжаем работу в меню
 }
 
 void MainMenuState::render(RenderWindow& window) {

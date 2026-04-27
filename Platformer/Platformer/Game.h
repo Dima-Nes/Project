@@ -2,7 +2,8 @@
 #include <SFML/Graphics.hpp>
 #include "MainMenuState.h"
 #include "RegistrationState.h"
-#include "SplashState.h" // 1. Обязательно подключаем
+#include "SplashState.h"// 1. Обязательно подключаем
+#include "LoginState.h"
 
 using namespace sf;
 
@@ -12,6 +13,7 @@ private:
     MainMenuState* menu;
     RegistrationState* registration;
     SplashState* splash; // 2. Добавляем указатель
+    LoginState* login;
 
     int currentState;
 

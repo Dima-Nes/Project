@@ -1,12 +1,12 @@
-#include "RegistrationState.h"
+#include "LoginState.h"
 
-RegistrationState::RegistrationState() {
+LoginState::LoginState() {
     mainFont.loadFromFile("assets/font.ttf");
     float centerX = VideoMode::getDesktopMode().width / 2.0f;
 
     // Заголовок
     title.setFont(mainFont);
-    title.setString(L"Регистрация");
+    title.setString(L"Вход");
     title.setCharacterSize(80);
     title.setPosition(centerX, 150.0f);
     centerText(title);
@@ -51,12 +51,12 @@ RegistrationState::RegistrationState() {
     centerText(exitBtn);
 }
 
-void RegistrationState::centerText(Text& text) {
+void LoginState::centerText(Text& text) {
     FloatRect textRect = text.getLocalBounds();
     text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
 }
 
-int RegistrationState::update(RenderWindow& window, Event& event) {
+int LoginState::update(RenderWindow& window, Event& event) {
     static Clock animClock;
     float dt = animClock.restart().asSeconds();
     Vector2f mousePos = window.mapPixelToCoords(Mouse::getPosition(window));
@@ -110,9 +110,9 @@ int RegistrationState::update(RenderWindow& window, Event& event) {
         ));
 
         if (hovered && Mouse::isButtonPressed(Mouse::Left)) {
-            if (btn == &exitBtn) window.close(); 
+            if (btn == &exitBtn) window.close();
             // Здесь будет логика возврата в меню
-			if (btn == &backBtn) return 0; // Сигнал для Game: "Пора возвращаться в меню"
+            if (btn == &backBtn) return 0; // Сигнал для Game: "Пора возвращаться в меню"
         }
     }
 
@@ -129,10 +129,10 @@ int RegistrationState::update(RenderWindow& window, Event& event) {
             }
         }
     }
-	return 1; // Пока всегда остаемся в этом состоянии
+    return 2; // Пока всегда остаемся в этом состоянии
 }
 
-void RegistrationState::render(RenderWindow& window) {
+void LoginState::render(RenderWindow& window) {
     window.draw(title);
     for (int i = 0; i < 3; i++) {
         window.draw(fields[i].box);
