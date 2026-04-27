@@ -1,21 +1,26 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include "SplashState.h"
 #include "MainMenuState.h"
 #include "RegistrationState.h"
-#include "SplashState.h"// 1. Обязательно подключаем
-#include "LoginState.h"
+#include "LoginState.h"       // НОВОЕ
+#include "GameMenuState.h"    // НОВОЕ
+#include "Database.h"         // НОВОЕ
 
 using namespace sf;
 
 class Game {
 private:
     RenderWindow window;
+    int currentState;
+
+    SplashState* splash;
     MainMenuState* menu;
     RegistrationState* registration;
-    SplashState* splash; // 2. Добавляем указатель
-    LoginState* login;
+    LoginState* login;       // НОВОЕ
+    GameMenuState* gameMenu;    // НОВОЕ
 
-    int currentState;
+    Database* database;   // НОВОЕ — один объект на всю игру
 
 public:
     Game();

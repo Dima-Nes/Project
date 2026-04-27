@@ -1,35 +1,50 @@
 #pragma once
-#include <SFML/Graphics.hpp>
-#include <vector>
+#include "State.h"
+#include "Database.h"
 #include <string>
 
-using namespace sf;
-using namespace std;
-
-class RegistrationState {
+class RegistrationState : public State {
 private:
-    Font mainFont;
+    Font font;
+    float cx;
 
-    // Тексты для кнопок и заголовков
     Text title;
-    Text backBtn, exitBtn;
 
-    // Поля ввода: текст-подсказка и то, что ввел пользователь
-    struct InputField {
-        RectangleShape box;
-        Text label;        // "Имя пользователя", "Пароль" и т.д.
-        Text userInput;    // То, что печатает юзер
-        wstring content;   // Сама строка ввода
-        bool isActive;     // Выбрано ли поле сейчас
-    };
+    // Подписи полей
+    Text lblLogin, lblPass, lblConfirm;
 
-    InputField fields[3]; // 0: Ник, 1: Пароль, 2: Подтверждение
-    int activeFieldIndex = -1;
+    // Рамки полей ввода
+    RectangleShape boxLogin, boxPass, boxConfirm;
 
-    void centerText(Text& text);
+    // Отображаемый текст в полях
+    Text fldLogin, fldPass, fldConfirm;
+
+    // Мигающий курсор
+    RectangleShape caret;
+    Clock caretClock;
+    bool caretVisible;
+
+    // Кнопки
+    Text btnSubmit, btnBack;
+
+    // Сообщение об ошибке
+    Text msgError;
+
+    // Введённые данные
+    std::string sLogin, sPass, sConfirm;
+    int activeField; // 0 = логин, 1 = пароль, 2 = подтверждение
+
+    Database* db;
+
+    void centerText(Text& t);
+    void refreshFields();
+    void setError(const wchar_t* msg);
+    bool trySubmit();
 
 public:
-    RegistrationState();
-    int update(RenderWindow& window, Event& event);
-    void render(RenderWindow& window);
+    RegistrationState(Database* database);
+
+    int update(RenderWindow& window, Event& event) override;
+    void updateLogic(RenderWindow& window); // Курсор и анимации
+    void render(RenderWindow& window) override;
 };

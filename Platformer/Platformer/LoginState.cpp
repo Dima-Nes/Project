@@ -1,144 +1,187 @@
-#include "LoginState.h"
+п»ї#include "LoginState.h"
 
-LoginState::LoginState() {
-    mainFont.loadFromFile("assets/font.ttf");
-    float centerX = VideoMode::getDesktopMode().width / 2.0f;
+// в”Ђв”Ђв”Ђ РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-    // Заголовок
-    title.setFont(mainFont);
-    title.setString(L"Вход");
-    title.setCharacterSize(80);
-    title.setPosition(centerX, 150.0f);
+LoginState::LoginState(Database* database)
+    : db(database), activeField(0), caretVisible(true)
+{
+    font.loadFromFile("assets/font.ttf");
+
+    float W = (float)VideoMode::getDesktopMode().width;
+    float H = (float)VideoMode::getDesktopMode().height;
+    cx = W / 2.f;
+    float left = cx - 250.f;
+    float baseY = H * 0.22f;
+    float gap = 140.f;
+
+    // Р—Р°РіРѕР»РѕРІРѕРє
+    title.setFont(font);
+    title.setString(L"Р’С…РѕРґ РІ Р°РєРєР°СѓРЅС‚");
+    title.setCharacterSize(68);
+    title.setFillColor(Color::White);
+    title.setPosition(cx, baseY);
     centerText(title);
 
-    // Настройка трех полей ввода
-    wstring labels[] = { L"Имя пользователя:", L"Пароль:", L"Повторите пароль:" };
-    for (int i = 0; i < 3; i++) {
-        fields[i].isActive = false;
+    // РџРѕР»Рµ В«Р›РѕРіРёРЅВ»
+    lblLogin.setFont(font);
+    lblLogin.setString(L"Р›РѕРіРёРЅ:");
+    lblLogin.setCharacterSize(26);
+    lblLogin.setFillColor(Color(190, 190, 210));
+    lblLogin.setPosition(left, baseY + 80.f);
 
-        // Рамка поля
-        fields[i].box.setSize(Vector2f(500.0f, 60.0f));
-        fields[i].box.setFillColor(Color(50, 50, 50));
-        fields[i].box.setOutlineThickness(2);
-        fields[i].box.setOutlineColor(Color::White);
-        fields[i].box.setOrigin(250.0f, 30.0f);
-        fields[i].box.setPosition(centerX, 350.0f + i * 150.0f);
+    boxLogin.setSize({ 500.f, 56.f });
+    boxLogin.setPosition(left, baseY + 108.f);
+    boxLogin.setFillColor(Color(45, 45, 58));
+    boxLogin.setOutlineThickness(2.f);
+    boxLogin.setOutlineColor(Color(90, 90, 120));
 
-        // Текст-подсказка сверху
-        fields[i].label.setFont(mainFont);
-        fields[i].label.setString(labels[i]);
-        fields[i].label.setCharacterSize(30);
-        fields[i].label.setPosition(centerX - 250.0f, 290.0f + i * 150.0f);
+    fldLogin.setFont(font);
+    fldLogin.setCharacterSize(30);
+    fldLogin.setFillColor(Color::White);
+    fldLogin.setPosition(left + 10.f, baseY + 118.f);
 
-        // Текст, который вводит пользователь
-        fields[i].userInput.setFont(mainFont);
-        fields[i].userInput.setCharacterSize(40);
-        fields[i].userInput.setFillColor(Color::White);
-        fields[i].userInput.setPosition(centerX - 240.0f, 325.0f + i * 150.0f);
-    }
+    // РџРѕР»Рµ В«РџР°СЂРѕР»СЊВ»
+    lblPass.setFont(font);
+    lblPass.setString(L"РџР°СЂРѕР»СЊ:");
+    lblPass.setCharacterSize(26);
+    lblPass.setFillColor(Color(190, 190, 210));
+    lblPass.setPosition(left, baseY + 80.f + gap);
 
-    // Кнопки
-    backBtn.setFont(mainFont);
-    backBtn.setString(L"Назад");
-    backBtn.setCharacterSize(50);
-    backBtn.setPosition(centerX - 200.0f, 850.0f);
-    centerText(backBtn);
+    boxPass.setSize({ 500.f, 56.f });
+    boxPass.setPosition(left, baseY + 108.f + gap);
+    boxPass.setFillColor(Color(45, 45, 58));
+    boxPass.setOutlineThickness(2.f);
+    boxPass.setOutlineColor(Color(90, 90, 120));
 
-    exitBtn.setFont(mainFont);
-    exitBtn.setString(L"Выход");
-    exitBtn.setCharacterSize(50);
-    exitBtn.setPosition(centerX + 200.0f, 850.0f);
-    centerText(exitBtn);
+    fldPass.setFont(font);
+    fldPass.setCharacterSize(30);
+    fldPass.setFillColor(Color::White);
+    fldPass.setPosition(left + 10.f, baseY + 118.f + gap);
+
+    // РљСѓСЂСЃРѕСЂ
+    caret.setSize({ 2.f, 34.f });
+    caret.setFillColor(Color::White);
+
+    // РљРЅРѕРїРєРё
+    btnSubmit.setFont(font);
+    btnSubmit.setString(L"Р’РѕР№С‚Рё");
+    btnSubmit.setCharacterSize(52);
+    btnSubmit.setFillColor(Color::White);
+    btnSubmit.setPosition(cx, baseY + 108.f + gap * 2 + 25.f);
+    centerText(btnSubmit);
+
+    btnBack.setFont(font);
+    btnBack.setString(L"РќР°Р·Р°Рґ");
+    btnBack.setCharacterSize(38);
+    btnBack.setFillColor(Color(160, 160, 180));
+    btnBack.setPosition(cx, baseY + 108.f + gap * 2 + 100.f);
+    centerText(btnBack);
+
+    // РћС€РёР±РєР°
+    msgError.setFont(font);
+    msgError.setCharacterSize(26);
+    msgError.setFillColor(Color(255, 80, 80));
+    msgError.setPosition(left, baseY + 108.f + gap * 2 - 15.f);
 }
 
-void LoginState::centerText(Text& text) {
-    FloatRect textRect = text.getLocalBounds();
-    text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
+// в”Ђв”Ђв”Ђ Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Рµ РјРµС‚РѕРґС‹ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+void LoginState::centerText(Text& t) {
+    FloatRect r = t.getLocalBounds();
+    t.setOrigin(r.left + r.width / 2.f, r.top + r.height / 2.f);
 }
+
+void LoginState::refreshFields() {
+    fldLogin.setString(sLogin);
+    fldPass.setString(sPass);
+}
+
+// в”Ђв”Ђв”Ђ update (СЃРѕР±С‹С‚РёСЏ) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// Р’РѕР·РІСЂР°С‰Р°РµС‚:  0 = РЅР°Р·Р°Рґ,  2 = СѓСЃРїРµС€РЅС‹Р№ РІС…РѕРґ,  -1 = РѕСЃС‚Р°С‘РјСЃСЏ Р·РґРµСЃСЊ
 
 int LoginState::update(RenderWindow& window, Event& event) {
-    static Clock animClock;
-    float dt = animClock.restart().asSeconds();
-    Vector2f mousePos = window.mapPixelToCoords(Mouse::getPosition(window));
+    Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
 
-    // 1. Обработка ввода текста (через Event)
-    //if (event.type == Event::TextEntered && activeFieldIndex != -1) {
-    //    if (event.text.unicode == 8) { // Backspace
-    //        if (!fields[activeFieldIndex].content.empty())
-    //            fields[activeFieldIndex].content.pop_back();
-    //    }
-    //    else if (event.text.unicode < 128 || event.text.unicode > 159) { // Обычные символы
-    //        fields[activeFieldIndex].content += static_cast<wchar_t>(event.text.unicode);
-    //    }
-    //    fields[activeFieldIndex].userInput.setString(fields[activeFieldIndex].content);
-    //}
-    // 1. Обработка ввода текста (через Event)
-    if (event.type == Event::TextEntered && activeFieldIndex != -1) {
-        if (event.text.unicode == 8) { // Backspace
-            if (!fields[activeFieldIndex].content.empty()) {
-                fields[activeFieldIndex].content.pop_back();
-            }
-        }
-        // Проверка: код символа должен быть печатным и длина строки меньше 10
-        else if (event.text.unicode >= 32 && fields[activeFieldIndex].content.size() < 14) {
-            fields[activeFieldIndex].content += static_cast<wchar_t>(event.text.unicode);
+    // в”Ђв”Ђ РљР»Р°РІРёР°С‚СѓСЂР° в”Ђв”Ђ
+    if (event.type == Event::KeyPressed) {
+        if (event.key.code == Keyboard::Escape) return 0;
+        if (event.key.code == Keyboard::Tab)    activeField = (activeField + 1) % 2;
+
+        if (event.key.code == Keyboard::BackSpace) {
+            std::string& s = (activeField == 0) ? sLogin : sPass;
+            if (!s.empty()) s.pop_back();
         }
 
-        fields[activeFieldIndex].userInput.setString(fields[activeFieldIndex].content);
-
-        // СБРОС СОБЫТИЯ: Чтобы символ не вводился каждый кадр, 
-        // превращаем обработанное событие в тип, который мы игнорируем.
-        event.type = Event::Count;
-    }
-
-    // 2. Логика кнопок и полей (Анимация и клики)
-    Text* uiButtons[] = { &backBtn, &exitBtn };
-    for (auto* btn : uiButtons) {
-        bool hovered = btn->getGlobalBounds().contains(mousePos);
-        float targetScale = hovered ? 1.1f : 1.0f;
-        Color targetColor = hovered ? Color::Yellow : Color::White;
-
-        // Плавный масштаб и цвет
-        float nextScale = btn->getScale().x + (targetScale - btn->getScale().x) * 10.0f * dt;
-        btn->setScale(nextScale, nextScale);
-
-        Color cur = btn->getFillColor();
-        btn->setFillColor(Color(
-            cur.r + (targetColor.r - cur.r) * 10.0f * dt,
-            cur.g + (targetColor.g - cur.g) * 10.0f * dt,
-            cur.b + (targetColor.b - cur.b) * 10.0f * dt
-        ));
-
-        if (hovered && Mouse::isButtonPressed(Mouse::Left)) {
-            if (btn == &exitBtn) window.close();
-            // Здесь будет логика возврата в меню
-            if (btn == &backBtn) return 0; // Сигнал для Game: "Пора возвращаться в меню"
+        if (event.key.code == Keyboard::Return) {
+            if (db->loginUser(sLogin, sPass)) return 2;
+            else msgError.setString(L"РќРµРІРµСЂРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ");
         }
     }
 
-    // Клик по полю ввода для активации
-    if (Mouse::isButtonPressed(Mouse::Left)) {
-        activeFieldIndex = -1;
-        for (int i = 0; i < 3; i++) {
-            if (fields[i].box.getGlobalBounds().contains(mousePos)) {
-                activeFieldIndex = i;
-                fields[i].box.setOutlineColor(Color::Yellow);
-            }
-            else {
-                fields[i].box.setOutlineColor(Color::White);
-            }
+    // в”Ђв”Ђ Р’РІРѕРґ СЃРёРјРІРѕР»РѕРІ в”Ђв”Ђ
+    if (event.type == Event::TextEntered) {
+        sf::Uint32 c = event.text.unicode;
+        if (c >= 32 && c < 128) {
+            std::string& s = (activeField == 0) ? sLogin : sPass;
+            if (s.size() < 32) s += static_cast<char>(c);
         }
     }
-    return 2; // Пока всегда остаемся в этом состоянии
+
+    // в”Ђв”Ђ РњС‹С€СЊ в”Ђв”Ђ
+    if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) {
+        if (boxLogin.getGlobalBounds().contains(mouse)) { activeField = 0; msgError.setString(""); }
+        else if (boxPass.getGlobalBounds().contains(mouse)) { activeField = 1; msgError.setString(""); }
+
+        if (btnBack.getGlobalBounds().contains(mouse)) return 0;
+        if (btnSubmit.getGlobalBounds().contains(mouse)) {
+            if (db->loginUser(sLogin, sPass)) return 2;
+            else msgError.setString(L"РќРµРІРµСЂРЅС‹Р№ Р»РѕРіРёРЅ РёР»Рё РїР°СЂРѕР»СЊ");
+        }
+    }
+
+    refreshFields();
+    return -1;
 }
 
-void LoginState::render(RenderWindow& window) {
-    window.draw(title);
-    for (int i = 0; i < 3; i++) {
-        window.draw(fields[i].box);
-        window.draw(fields[i].label);
-        window.draw(fields[i].userInput);
+// в”Ђв”Ђв”Ђ updateLogic (РєР°Р¶РґС‹Р№ РєР°РґСЂ) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+void LoginState::updateLogic(RenderWindow& window) {
+    // РњРёРіР°РЅРёРµ
+    if (caretClock.getElapsedTime().asSeconds() > 0.5f) {
+        caretVisible = !caretVisible;
+        caretClock.restart();
     }
-    window.draw(backBtn);
-    window.draw(exitBtn);
+
+    // РџРѕР·РёС†РёСЏ РєСѓСЂСЃРѕСЂР°
+    Text* activeText = (activeField == 0) ? &fldLogin : &fldPass;
+    std::string& activeStr = (activeField == 0) ? sLogin : sPass;
+
+    Vector2f pos = activeText->getPosition();
+    float    tw = activeStr.empty()
+        ? 0.f
+        : activeText->findCharacterPos(activeStr.size()).x - pos.x;
+    caret.setPosition(pos.x + tw + 2.f, pos.y + 5.f);
+}
+
+// в”Ђв”Ђв”Ђ render в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+void LoginState::render(RenderWindow& window) {
+    boxLogin.setOutlineColor(activeField == 0 ? Color(100, 160, 255) : Color(90, 90, 120));
+    boxPass.setOutlineColor(activeField == 1 ? Color(100, 160, 255) : Color(90, 90, 120));
+
+    window.draw(title);
+
+    window.draw(lblLogin);
+    window.draw(boxLogin);
+    window.draw(fldLogin);
+
+    window.draw(lblPass);
+    window.draw(boxPass);
+    window.draw(fldPass);
+
+    if (caretVisible) window.draw(caret);
+
+    window.draw(btnSubmit);
+    window.draw(btnBack);
+    window.draw(msgError);
 }

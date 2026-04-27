@@ -129,6 +129,7 @@
     <ClCompile Include="..\..\libs\SQLite\sqlite3.c" />
     <ClCompile Include="Database.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameMenuState.cpp" />
     <ClCompile Include="LoginState.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainMenuState.cpp" />
@@ -138,6 +139,7 @@
   <ItemGroup>
     <ClInclude Include="Database.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="GameMenuState.h" />
     <ClInclude Include="LoginState.h" />
     <ClInclude Include="MainMenuState.h" />
     <ClInclude Include="RegistrationState.h" />

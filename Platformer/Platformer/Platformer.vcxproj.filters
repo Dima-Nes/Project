@@ -36,6 +36,12 @@
     <ClCompile Include="RegistrationState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LoginState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameMenuState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Database.h">
@@ -54,6 +60,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RegistrationState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LoginState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameMenuState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

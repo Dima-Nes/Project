@@ -1,35 +1,44 @@
 #pragma once
-#include <SFML/Graphics.hpp>
-#include <vector>
+#include "State.h"
+#include "Database.h"
 #include <string>
 
-using namespace sf;
-using namespace std;
-
-class LoginState {
+class LoginState : public State {
 private:
-    Font mainFont;
+    Font font;
+    float cx;
 
-    // Тексты для кнопок и заголовков
     Text title;
-    Text backBtn, exitBtn;
 
-    // Поля ввода: текст-подсказка и то, что ввел пользователь
-    struct InputField {
-        RectangleShape box;
-        Text label;        // "Имя пользователя", "Пароль" и т.д.
-        Text userInput;    // То, что печатает юзер
-        wstring content;   // Сама строка ввода
-        bool isActive;     // Выбрано ли поле сейчас
-    };
+    // Поля
+    Text lblLogin, lblPass;
+    RectangleShape boxLogin, boxPass;
+    Text fldLogin, fldPass;
 
-    InputField fields[3]; // 0: Ник, 1: Пароль, 2: Подтверждение
-    int activeFieldIndex = -1;
+    // Курсор
+    RectangleShape caret;
+    Clock caretClock;
+    bool caretVisible;
 
-    void centerText(Text& text);
+    // Кнопки
+    Text btnSubmit, btnBack;
+
+    // Сообщение об ошибке
+    Text msgError;
+
+    // Данные
+    std::string sLogin, sPass;
+    int activeField; // 0 = логин, 1 = пароль
+
+    Database* db;
+
+    void centerText(Text& t);
+    void refreshFields();
 
 public:
-    LoginState();
-    int update(RenderWindow& window, Event& event);
-    void render(RenderWindow& window);
+    LoginState(Database* database);
+
+    int update(RenderWindow& window, Event& event) override;
+    void updateLogic(RenderWindow& window);
+    void render(RenderWindow& window) override;
 };
