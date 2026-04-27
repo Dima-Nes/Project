@@ -10,25 +10,19 @@ private:
 
     Text title;
 
-    // Поля
     Text lblLogin, lblPass;
     RectangleShape boxLogin, boxPass;
     Text fldLogin, fldPass;
 
-    // Курсор
     RectangleShape caret;
     Clock caretClock;
     bool caretVisible;
 
-    // Кнопки
     Text btnSubmit, btnBack;
-
-    // Сообщение об ошибке
     Text msgError;
 
-    // Данные
     std::string sLogin, sPass;
-    int activeField; // 0 = логин, 1 = пароль
+    int activeField;
 
     Database* db;
 
@@ -38,7 +32,12 @@ private:
 public:
     LoginState(Database* database);
 
-    int update(RenderWindow& window, Event& event) override;
+    int  update(RenderWindow& window, Event& event) override;
     void updateLogic(RenderWindow& window);
     void render(RenderWindow& window) override;
+
+    // ─── НОВОЕ ────────────────────────────────────────────────────────────────
+    // Возвращает логин последнего успешного входа.
+    // Game читает его сразу после update() == 2.
+    const std::string& getLastUsername() const { return sLogin; }
 };

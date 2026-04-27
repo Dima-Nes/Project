@@ -8,12 +8,15 @@ private:
     Text registerBtn;
     Text exitBtn;
 
-    // Вспомогательная функция, чтобы не дублировать код центрирования
     void centerText(Text& text);
 
 public:
-    MainMenuState(); // Конструктор (тут всё настроим)
+    MainMenuState();
 
-    int update(RenderWindow& window, Event& event) override;
+    int  update(RenderWindow& window, Event& event) override;
     void render(RenderWindow& window) override;
+
+    // ─── НОВОЕ ────────────────────────────────────────────────────────────────
+    // Hover-анимация кнопок — вызывать каждый кадр из Game::run()
+    void updateLogic(RenderWindow& window);
 };

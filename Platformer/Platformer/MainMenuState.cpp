@@ -4,14 +4,12 @@
 using namespace std;
 
 MainMenuState::MainMenuState() {
-    //1. Загрузка шрифта
     if (!mainFont.loadFromFile("assets/font.ttf")) {
         cout << "ERROR: Font not found in assets folder!" << endl;
     }
 
     float centerX = VideoMode::getDesktopMode().width / 2.0f;
-    
-    // 2. Настройка кнопок
+
     loginBtn.setFont(mainFont);
     loginBtn.setString(L"Вход");
     loginBtn.setCharacterSize(60);
@@ -35,49 +33,52 @@ MainMenuState::MainMenuState() {
 }
 
 void MainMenuState::centerText(Text& text) {
-    FloatRect textRect = text.getLocalBounds();
-    text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
+    FloatRect r = text.getLocalBounds();
+    text.setOrigin(r.left + r.width / 2.0f, r.top + r.height / 2.0f);
 }
 
-int MainMenuState::update(RenderWindow& window, Event& event) { // Изменили void на int
-    static Clock animClock;
-    float dt = animClock.restart().asSeconds();
+int MainMenuState::update(RenderWindow& window, Event& event) {
+    // Обрабатываем только событие клика (не опрос) — исключаем многократный триггер
+    if (event.type != Event::MouseButtonPressed) return 0;
+    if (event.mouseButton.button != Mouse::Left)  return 0;
 
-    Vector2i mousePos = Mouse::getPosition(window);
-    Vector2f mousePosF = window.mapPixelToCoords(mousePos);
+    Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
 
-    Text* buttons[] = { &loginBtn, &registerBtn, &exitBtn };
-    int nextState = 0; // По умолчанию остаемся здесь
+    // ─── ИСПРАВЛЕНО (применён MainMenuState_PATCH.txt) ───────────────────────
+    if (loginBtn.getGlobalBounds().contains(mouse))    return 1;  // → LoginState
+    if (registerBtn.getGlobalBounds().contains(mouse)) return 2;  // → RegistrationState
+    if (exitBtn.getGlobalBounds().contains(mouse)) { window.close(); }
 
-    for (auto* btn : buttons) {
-        bool hovered = btn->getGlobalBounds().contains(mousePosF);
-        float targetScale = hovered ? 1.2f : 1.0f;
-        Color targetColor = hovered ? Color::Yellow : Color::White;
-
-        // Плавная анимация
-        float nextScale = btn->getScale().x + (targetScale - btn->getScale().x) * 8.0f * dt;
-        btn->setScale(nextScale, nextScale);
-
-        Color cur = btn->getFillColor();
-        btn->setFillColor(Color(
-            cur.r + (targetColor.r - cur.r) * 8.0f * dt,
-            cur.g + (targetColor.g - cur.g) * 8.0f * dt,
-            cur.b + (targetColor.b - cur.b) * 8.0f * dt
-        ));
-
-        // ОБРАБОТКА КЛИКА
-        if (hovered && Mouse::isButtonPressed(Mouse::Left)) {
-            if (btn == &registerBtn) return 2; // Переход в регистрацию
-			if (btn == &loginBtn) return 1; // Переход в вход
-            if (btn == &exitBtn) window.close();
-            // Здесь можно добавить return 2 для окна Входа
-        }
-    }
-    return 0; // Продолжаем работу в меню
+    return 0;
 }
 
 void MainMenuState::render(RenderWindow& window) {
+    // Анимация hover — выполняется каждый кадр через updateLogic
     window.draw(loginBtn);
     window.draw(registerBtn);
     window.draw(exitBtn);
+}
+
+void MainMenuState::updateLogic(RenderWindow& window) {
+    static Clock animClock;
+    float dt = animClock.restart().asSeconds();
+
+    Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
+    Text* buttons[] = { &loginBtn, &registerBtn, &exitBtn };
+
+    for (auto* btn : buttons) {
+        bool  hovered = btn->getGlobalBounds().contains(mouse);
+        float targetScale = hovered ? 1.15f : 1.0f;
+        Color targetColor = hovered ? Color::Yellow : Color::White;
+
+        float s = btn->getScale().x + (targetScale - btn->getScale().x) * 8.f * dt;
+        btn->setScale(s, s);
+
+        Color c = btn->getFillColor();
+        btn->setFillColor(Color(
+            (sf::Uint8)(c.r + (targetColor.r - c.r) * 8.f * dt),
+            (sf::Uint8)(c.g + (targetColor.g - c.g) * 8.f * dt),
+            (sf::Uint8)(c.b + (targetColor.b - c.b) * 8.f * dt)
+        ));
+    }
 }

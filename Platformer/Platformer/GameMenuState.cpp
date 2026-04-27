@@ -1,4 +1,4 @@
-#include "GameMenuState.h"
+п»ї#include "GameMenuState.h"
 
 GameMenuState::GameMenuState() {
     font.loadFromFile("assets/font.ttf");
@@ -7,9 +7,9 @@ GameMenuState::GameMenuState() {
     float H = (float)VideoMode::getDesktopMode().height;
     cx = W / 2.f;
 
-    // Заголовок
+    // Р—Р°РіРѕР»РѕРІРѕРє
     title.setFont(font);
-    title.setString(L"Главное");
+    title.setString(L"Р“Р»Р°РІРЅРѕРµ");
     title.setCharacterSize(72);
     title.setFillColor(Color::White);
     title.setPosition(cx, H * 0.14f);
@@ -27,10 +27,10 @@ GameMenuState::GameMenuState() {
         centerText(t);
         };
 
-    setup(btnPlay, L"Играть", startY);
-    setup(btnSettings, L"Настройки", startY + gap);
-    setup(btnNewWorld, L"Новый мир", startY + gap * 2);
-    setup(btnExit, L"Выйти", startY + gap * 3);
+    setup(btnPlay, L"РРіСЂР°С‚СЊ", startY);
+    setup(btnSettings, L"РќР°СЃС‚СЂРѕР№РєРё", startY + gap);
+    setup(btnNewWorld, L"РќРѕРІС‹Р№ РјРёСЂ", startY + gap * 2);
+    setup(btnExit, L"Р’С‹Р№С‚Рё", startY + gap * 3);
 }
 
 void GameMenuState::centerText(Text& t) {

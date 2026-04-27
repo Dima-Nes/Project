@@ -4,7 +4,7 @@
 
 class Database {
 private:
-    sqlite3* db; // Сам "движок" базы данных
+    sqlite3* db;
     bool isConnected;
 
 public:
@@ -15,9 +15,16 @@ public:
     void close();
     bool createTables();
 
-    // Пытается создать нового пользователя. Вернет false, если такой логин уже занят.
+    // Пытается создать нового пользователя. Вернёт false, если логин занят.
     bool registerUser(const std::string& username, const std::string& password);
 
-    // Проверяет, есть ли такой логин с таким паролем.
+    // Проверяет логин и пароль. Вернёт true при совпадении.
     bool loginUser(const std::string& username, const std::string& password);
+
+    // ─── НОВОЕ: рекорды ───────────────────────────────────────────────────────
+    // Обновляет HighScore только если новый score > текущего.
+    bool updateHighScore(const std::string& username, int score);
+
+    // Возвращает текущий рекорд пользователя (0 если не найден).
+    int  getHighScore(const std::string& username);
 };

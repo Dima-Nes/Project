@@ -127,24 +127,34 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\libs\SQLite\sqlite3.c" />
+    <ClCompile Include="Animation.cpp" />
     <ClCompile Include="Database.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameMenuState.cpp" />
+    <ClCompile Include="HUD.cpp" />
     <ClCompile Include="LoginState.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainMenuState.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayState.cpp" />
     <ClCompile Include="RegistrationState.cpp" />
     <ClCompile Include="SplashState.cpp" />
+    <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Animation.h" />
     <ClInclude Include="Database.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameMenuState.h" />
+    <ClInclude Include="HUD.h" />
     <ClInclude Include="LoginState.h" />
     <ClInclude Include="MainMenuState.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="PlayState.h" />
     <ClInclude Include="RegistrationState.h" />
     <ClInclude Include="SplashState.h" />
     <ClInclude Include="State.h" />
+    <ClInclude Include="World.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

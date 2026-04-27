@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include "State.h"
 #include "Database.h"
 #include <string>
@@ -10,29 +10,19 @@ private:
 
     Text title;
 
-    // Подписи полей
     Text lblLogin, lblPass, lblConfirm;
-
-    // Рамки полей ввода
     RectangleShape boxLogin, boxPass, boxConfirm;
-
-    // Отображаемый текст в полях
     Text fldLogin, fldPass, fldConfirm;
 
-    // Мигающий курсор
     RectangleShape caret;
     Clock caretClock;
     bool caretVisible;
 
-    // Кнопки
     Text btnSubmit, btnBack;
-
-    // Сообщение об ошибке
     Text msgError;
 
-    // Введённые данные
     std::string sLogin, sPass, sConfirm;
-    int activeField; // 0 = логин, 1 = пароль, 2 = подтверждение
+    int activeField;
 
     Database* db;
 
@@ -44,7 +34,11 @@ private:
 public:
     RegistrationState(Database* database);
 
-    int update(RenderWindow& window, Event& event) override;
-    void updateLogic(RenderWindow& window); // Курсор и анимации
+    int  update(RenderWindow& window, Event& event) override;
+    void updateLogic(RenderWindow& window);
     void render(RenderWindow& window) override;
+
+    // в”Ђв”Ђв”Ђ РќРћР’РћР• в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    // Р’РѕР·РІСЂР°С‰Р°РµС‚ Р»РѕРіРёРЅ С‚РѕР»СЊРєРѕ С‡С‚Рѕ СЃРѕР·РґР°РЅРЅРѕРіРѕ Р°РєРєР°СѓРЅС‚Р°.
+    const std::string& getLastUsername() const { return sLogin; }
 };
