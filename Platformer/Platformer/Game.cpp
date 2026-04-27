@@ -12,15 +12,14 @@ Game::Game() {
     window.create(desktop, L"Курсовая работа", Style::Fullscreen);
     window.setFramerateLimit(60);
 
-    // База данных — создаём один раз, передаём в нужные экраны
     database = new Database();
     database->connect("users.db");
     database->createTables();
 
     splash = new SplashState();
     menu = new MainMenuState();
-    registration = new RegistrationState(database);  // передаём БД
-    login = new LoginState(database);          // передаём БД
+    registration = new RegistrationState(database);
+    login = new LoginState(database);
     gameMenu = new GameMenuState();
 
     currentState = -1;
@@ -32,11 +31,14 @@ Game::~Game() {
     delete registration;
     delete login;
     delete gameMenu;
-    delete database;   // закрывает соединение в деструкторе Database
+    delete database;
 }
 
 void Game::run() {
+    Clock frameClock;
+
     while (window.isOpen()) {
+        float dt = frameClock.restart().asSeconds();
         Event event;
 
         // ── 1. Обрабатываем все события ──────────────────────────────────────
@@ -48,32 +50,32 @@ void Game::run() {
             }
             else if (currentState == 0) {
                 int res = menu->update(window, event);
-                if (res == 1) currentState = 2;  // кнопка «Вход» → LoginState
-                if (res == 2) currentState = 1;  // кнопка «Регистрация» → RegistrationState
+                if (res == 1) currentState = 2;  // Вход → LoginState
+                if (res == 2) currentState = 1;  // Регистрация → RegistrationState
             }
-            else if (currentState == 1) {        // Регистрация
+            else if (currentState == 1) {
                 int res = registration->update(window, event);
-                if (res == 0) currentState = 0;  // назад в меню
-                if (res == 2) currentState = 3;  // успех → GameMenu
+                if (res == 0) currentState = 0;
+                if (res == 2) currentState = 3;
             }
-            else if (currentState == 2) {        // Вход
+            else if (currentState == 2) {
                 int res = login->update(window, event);
-                if (res == 0) currentState = 0;  // назад в меню
-                if (res == 2) currentState = 3;  // успех → GameMenu
+                if (res == 0) currentState = 0;
+                if (res == 2) currentState = 3;
             }
-            else if (currentState == 3) {        // Игровое меню
+            else if (currentState == 3) {
                 int res = gameMenu->update(window, event);
-                if (res == 0) window.close();    // выйти из игры
-                // res == 1 (Играть), 2 (Настройки), 3 (Новый мир) — реализуем позже
+                if (res == 0) window.close();
             }
         }
 
-        // ── 2. Обновляем логику (анимации/курсор — вне цикла событий!) ───────
+        // ── 2. Логика каждый кадр (анимации, курсор, физика) ─────────────────
+        if (currentState == 0) menu->updateLogic(window);         // ← ИСПРАВЛЕНО
         if (currentState == 1) registration->updateLogic(window);
         if (currentState == 2) login->updateLogic(window);
         if (currentState == 3) gameMenu->updateLogic(window);
 
-        // ── 3. Рисуем ────────────────────────────────────────────────────────
+        // ── 3. Рендер ────────────────────────────────────────────────────────
         window.clear(Color(30, 30, 30));
         if (currentState == -1) splash->render(window);
         else if (currentState == 0) menu->render(window);

@@ -7,9 +7,8 @@ GameMenuState::GameMenuState() {
     float H = (float)VideoMode::getDesktopMode().height;
     cx = W / 2.f;
 
-    // Заголовок
     title.setFont(font);
-    title.setString(L"Главное");
+    title.setString(L"Главное меню");
     title.setCharacterSize(72);
     title.setFillColor(Color::White);
     title.setPosition(cx, H * 0.14f);
@@ -38,6 +37,8 @@ void GameMenuState::centerText(Text& t) {
     t.setOrigin(r.left + r.width / 2.f, r.top + r.height / 2.f);
 }
 
+// ─── updateLogic (анимации — каждый кадр) ────────────────────────────────────
+
 void GameMenuState::updateLogic(RenderWindow& window) {
     float dt = animClock.restart().asSeconds();
     Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
@@ -61,21 +62,27 @@ void GameMenuState::updateLogic(RenderWindow& window) {
     }
 }
 
+// ─── update (клики — только из события) ──────────────────────────────────────
+// Возвращает: 0 = выйти, 1 = играть, 2 = настройки, 3 = новый мир, -1 = ничего
 
 int GameMenuState::update(RenderWindow& window, Event& event) {
     if (event.type != Event::MouseButtonPressed) return -1;
     if (event.mouseButton.button != Mouse::Left)  return -1;
 
-    Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
+    // ── ИСПРАВЛЕНО: берём координаты прямо из события, а не опрашиваем мышь ──
+    Vector2f mouse = window.mapPixelToCoords(
+        { event.mouseButton.x, event.mouseButton.y }
+    );
 
     if (btnPlay.getGlobalBounds().contains(mouse))     return 1;
     if (btnSettings.getGlobalBounds().contains(mouse)) return 2;
-    if (btnNewWorld.getGlobalBounds().contains(mouse))  return 3;
+    if (btnNewWorld.getGlobalBounds().contains(mouse)) return 3;
     if (btnExit.getGlobalBounds().contains(mouse))     return 0;
 
     return -1;
 }
 
+// ─── render ──────────────────────────────────────────────────────────────────
 
 void GameMenuState::render(RenderWindow& window) {
     window.draw(title);
