@@ -3,9 +3,10 @@
 #include "SplashState.h"
 #include "MainMenuState.h"
 #include "RegistrationState.h"
-#include "LoginState.h"       // НОВОЕ
-#include "GameMenuState.h"    // НОВОЕ
-#include "Database.h"         // НОВОЕ
+#include "LoginState.h"
+#include "GameMenuState.h"
+#include "PlayState.h"
+#include "Database.h"
 
 using namespace sf;
 
@@ -17,10 +18,13 @@ private:
     SplashState* splash;
     MainMenuState* menu;
     RegistrationState* registration;
-    LoginState* login;       // НОВОЕ
-    GameMenuState* gameMenu;    // НОВОЕ
+    LoginState* login;
+    GameMenuState* gameMenu;
+    PlayState* play;       // Создаётся при нажатии «Играть», может быть nullptr
 
-    Database* database;   // НОВОЕ — один объект на всю игру
+    Database* database;
+
+    Clock frameClock; // Для передачи dt в PlayState::updateLogic
 
 public:
     Game();
