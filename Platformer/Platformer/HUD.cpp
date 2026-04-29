@@ -20,12 +20,12 @@ bool HUD::loadFont(const std::string& path) {
 }
 
 void HUD::update(const Player& player) {
-    txtScore.setString(L"РћС‡РєРё: " + std::to_wstring(player.getScore()));
-    txtLives.setString(L"Р–РёР·РЅРё: " + std::to_wstring(player.getLives()));
+    txtScore.setString(L"Очки: " + std::to_wstring(player.getScore()));
+    txtLives.setString(L"Жизни: " + std::to_wstring(player.getLives()));
 }
 
 void HUD::render(RenderWindow& window) {
-    // Р’СЂРµРјРµРЅРЅРѕ СЃС‚Р°РІРёРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІРёРґ (СЌРєСЂР°РЅРЅС‹Рµ РєРѕРѕСЂРґРёРЅР°С‚С‹), СЂРёСЃСѓРµРј, РІРѕР·РІСЂР°С‰Р°РµРј
+    // Временно ставим стандартный вид (экранные координаты), рисуем, возвращаем
     View saved = window.getView();
     window.setView(window.getDefaultView());
     window.draw(txtScore);
