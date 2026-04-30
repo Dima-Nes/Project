@@ -112,6 +112,6 @@ void Game::run() {
         else if (currentState == 2) login->render(window);
         else if (currentState == 3) gameMenu->render(window);
         else if (currentState == 4 && play) play->render(window);
-        window.display();//
+        window.display();
     }
 }
