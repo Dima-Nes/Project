@@ -64,6 +64,7 @@ public:
 
     // Поставить персонажа на поверхность в центре мира.
     void spawn(const World& world);
+    void spawnAt(float x, float y);
 
     // Обрабатывать одиночные события (прыжок).
     void handleEvent(const Event& event);

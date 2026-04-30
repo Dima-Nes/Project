@@ -46,7 +46,12 @@ void Player::spawn(const World& world) {
     onGround = false;
     animator.play(clipIdle);
 }
-
+void Player::spawnAt(float x, float y) {
+    pos = { x - HITBOX_W / 2.f, y - HITBOX_H / 2.f };
+    vel = { 0.f, 0.f };
+    onGround = false;
+    animator.play(clipIdle);
+}
 // ─── События (прыжок) ─────────────────────────────────────────────────────────
 
 void Player::handleEvent(const Event& event) {

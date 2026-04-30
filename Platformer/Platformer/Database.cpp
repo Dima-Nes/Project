@@ -14,7 +14,7 @@ bool Database::connect(const std::string& filename) {
         return false;
     }
     isConnected = true;
-    std::cout << "Database connection established: " << filename << std::endl;
+    std::cout << "Database connected: " << filename << std::endl;
     return true;
 }
 
@@ -23,19 +23,25 @@ void Database::close() {
         sqlite3_close(db);
         db = nullptr;
         isConnected = false;
-        std::cout << "Database connection closed." << std::endl;
     }
 }
 
 bool Database::createTables() {
     const char* sql = R"(
         CREATE TABLE IF NOT EXISTS Users (
-            ID        INTEGER PRIMARY KEY AUTOINCREMENT,
-            Username  TEXT    UNIQUE NOT NULL,
-            Password  TEXT    NOT NULL,
+            ID       INTEGER PRIMARY KEY AUTOINCREMENT,
+            Username TEXT UNIQUE NOT NULL,
+            Password TEXT NOT NULL,
             HighScore INTEGER DEFAULT 0
         );
+        CREATE TABLE IF NOT EXISTS WorldSaves (
+            Username TEXT PRIMARY KEY,
+            Seed     INTEGER NOT NULL,
+            PlayerX  REAL    DEFAULT 0,
+            PlayerY  REAL    DEFAULT 0
+        );
     )";
+
     char* errMsg = nullptr;
     int rc = sqlite3_exec(db, sql, 0, 0, &errMsg);
     if (rc != SQLITE_OK) {
@@ -43,26 +49,20 @@ bool Database::createTables() {
         sqlite3_free(errMsg);
         return false;
     }
-    std::cout << "Tables created (or already exist)." << std::endl;
     return true;
 }
+
+// ─── Аккаунты ────────────────────────────────────────────────────────────────
 
 bool Database::registerUser(const std::string& username, const std::string& password) {
     const char* sql = "INSERT INTO Users (Username, Password) VALUES (?, ?);";
     sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
-        std::cerr << "Ошибка подготовки запроса: " << sqlite3_errmsg(db) << std::endl;
-        return false;
-    }
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
     sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
-    bool success = (sqlite3_step(stmt) == SQLITE_DONE);
-    if (success)
-        std::cout << "Пользователь " << username << " успешно зарегистрирован!" << std::endl;
-    else
-        std::cerr << "Ошибка регистрации (возможно, логин занят): " << sqlite3_errmsg(db) << std::endl;
+    bool ok = sqlite3_step(stmt) == SQLITE_DONE;
     sqlite3_finalize(stmt);
-    return success;
+    return ok;
 }
 
 bool Database::loginUser(const std::string& username, const std::string& password) {
@@ -71,40 +71,82 @@ bool Database::loginUser(const std::string& username, const std::string& passwor
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
     sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
-    bool success = (sqlite3_step(stmt) == SQLITE_ROW);
-    if (success)
-        std::cout << "Успешный вход! Добро пожаловать, " << username << "." << std::endl;
-    else
-        std::cout << "Неверный логин или пароль." << std::endl;
+    bool ok = sqlite3_step(stmt) == SQLITE_ROW;
     sqlite3_finalize(stmt);
-    return success;
+    return ok;
 }
 
-// ─── НОВОЕ: рекорды ───────────────────────────────────────────────────────────
-
 bool Database::updateHighScore(const std::string& username, int score) {
-    // Обновляем только если новый score > старого (через условие в WHERE)
     const char* sql =
-        "UPDATE Users SET HighScore = ? WHERE Username = ? AND HighScore < ?;";
+        "UPDATE Users SET HighScore = MAX(HighScore, ?) WHERE Username = ?;";
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
     sqlite3_bind_int(stmt, 1, score);
     sqlite3_bind_text(stmt, 2, username.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_int(stmt, 3, score);
-    bool ok = (sqlite3_step(stmt) == SQLITE_DONE);
+    bool ok = sqlite3_step(stmt) == SQLITE_DONE;
     sqlite3_finalize(stmt);
-    if (ok) std::cout << "Рекорд обновлён: " << score << " для " << username << std::endl;
     return ok;
 }
 
-int Database::getHighScore(const std::string& username) {
-    const char* sql = "SELECT HighScore FROM Users WHERE Username = ?;";
+// ─── Мир ──────────────────────────────────────────────────────────────────────
+
+bool Database::saveWorld(const std::string& username, int seed,
+    float playerX, float playerY)
+{
+    // INSERT OR REPLACE — создаёт запись или перезаписывает если уже есть
+    const char* sql =
+        "INSERT OR REPLACE INTO WorldSaves (Username, Seed, PlayerX, PlayerY) "
+        "VALUES (?, ?, ?, ?);";
     sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return 0;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
     sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
-    int score = 0;
-    if (sqlite3_step(stmt) == SQLITE_ROW)
-        score = sqlite3_column_int(stmt, 0);
+    sqlite3_bind_int(stmt, 2, seed);
+    sqlite3_bind_double(stmt, 3, (double)playerX);
+    sqlite3_bind_double(stmt, 4, (double)playerY);
+    bool ok = sqlite3_step(stmt) == SQLITE_DONE;
     sqlite3_finalize(stmt);
-    return score;
+    if (ok) std::cout << "World saved. Seed=" << seed << " pos=("
+        << playerX << "," << playerY << ")\n";
+    return ok;
+}
+
+bool Database::loadWorld(const std::string& username,
+    int& seed, float& playerX, float& playerY)
+{
+    const char* sql =
+        "SELECT Seed, PlayerX, PlayerY FROM WorldSaves WHERE Username = ?;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
+    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+    bool ok = false;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        seed = sqlite3_column_int(stmt, 0);
+        playerX = (float)sqlite3_column_double(stmt, 1);
+        playerY = (float)sqlite3_column_double(stmt, 2);
+        ok = true;
+        std::cout << "World loaded. Seed=" << seed << " pos=("
+            << playerX << "," << playerY << ")\n";
+    }
+    sqlite3_finalize(stmt);
+    return ok;
+}
+
+bool Database::deleteWorld(const std::string& username) {
+    const char* sql = "DELETE FROM WorldSaves WHERE Username = ?;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
+    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+    bool ok = sqlite3_step(stmt) == SQLITE_DONE;
+    sqlite3_finalize(stmt);
+    return ok;
+}
+
+bool Database::hasWorld(const std::string& username) {
+    const char* sql = "SELECT 1 FROM WorldSaves WHERE Username = ?;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
+    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+    bool found = sqlite3_step(stmt) == SQLITE_ROW;
+    sqlite3_finalize(stmt);
+    return found;
 }
