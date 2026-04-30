@@ -20,11 +20,13 @@ private:
     RegistrationState* registration;
     LoginState* login;
     GameMenuState* gameMenu;
-    PlayState* play;       // Создаётся при нажатии «Играть», может быть nullptr
+    PlayState* play;
 
     Database* database;
 
-    Clock frameClock; // Для передачи dt в PlayState::updateLogic
+    Clock frameClock;
+
+    void startPlay(bool forceNew); // Играть / Новый мир
 
 public:
     Game();

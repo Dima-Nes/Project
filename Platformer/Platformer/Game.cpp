@@ -1,12 +1,12 @@
 #include "Game.h"
 
 // ─── Таблица состояний ───────────────────────────────────────────────────────
-//  -1  SplashState        (заставка)
+//  -1  SplashState
 //   0  MainMenuState      (вход / регистрация / выход)
-//   1  RegistrationState  (создание аккаунта)
-//   2  LoginState         (вход в аккаунт)
-//   3  GameMenuState      (главное меню игры)
-//   4  PlayState          (игровой мир)
+//   1  RegistrationState
+//   2  LoginState
+//   3  GameMenuState
+//   4  PlayState
 
 Game::Game() {
     VideoMode desktop = VideoMode::getDesktopMode();
@@ -22,7 +22,7 @@ Game::Game() {
     registration = new RegistrationState(database);
     login = new LoginState(database);
     gameMenu = new GameMenuState();
-    play = nullptr; // Создаётся только при нажатии «Играть»
+    play = nullptr;
 
     currentState = -1;
 }
@@ -37,12 +37,32 @@ Game::~Game() {
     delete database;
 }
 
+// ─── Запуск игры ─────────────────────────────────────────────────────────────
+
+void Game::startPlay(bool forceNew) {
+    if (forceNew)
+        database->deleteWorld("player");
+
+    delete play;
+
+    int   savedSeed = -1;
+    float spawnX = -1.f;
+    float spawnY = -1.f;
+
+    if (!forceNew)
+        database->loadWorld("player", savedSeed, spawnX, spawnY);
+
+    play = new PlayState(database, "player", savedSeed, spawnX, spawnY);
+    currentState = 4;
+}
+
+// ─── Главный цикл ────────────────────────────────────────────────────────────
+
 void Game::run() {
     while (window.isOpen()) {
         float dt = frameClock.restart().asSeconds();
         Event event;
 
-        // ── 1. Обрабатываем все события ──────────────────────────────────────
         while (window.pollEvent(event)) {
             if (event.type == Event::Closed) window.close();
 
@@ -51,49 +71,47 @@ void Game::run() {
             }
             else if (currentState == 0) {
                 int res = menu->update(window, event);
-                if (res == 1) currentState = 2;  // «Вход» → LoginState
-                if (res == 2) currentState = 1;  // «Регистрация» → RegistrationState
+                if (res == 1) currentState = 2;
+                if (res == 2) currentState = 1;
             }
             else if (currentState == 1) {
                 int res = registration->update(window, event);
                 if (res == 0) currentState = 0;
-                if (res == 2) currentState = 3;  // успех → GameMenu
+                if (res == 2) currentState = 3;
             }
             else if (currentState == 2) {
                 int res = login->update(window, event);
                 if (res == 0) currentState = 0;
-                if (res == 2) currentState = 3;  // успех → GameMenu
+                if (res == 2) currentState = 3;
             }
             else if (currentState == 3) {
                 int res = gameMenu->update(window, event);
-                if (res == 0) window.close();    // «Выйти»
-                if (res == 1) {                  // «Играть» → PlayState
-                    delete play;
-                    play = new PlayState(database, "");
-                    currentState = 4;
-                }
-                // res == 2 (Настройки), 3 (Новый мир) — реализуем позже
+                if (res == 0) window.close();
+                if (res == 1) startPlay(false);   // Играть  → загрузить сохранение
+                if (res == 3) startPlay(true);    // Новый мир → удалить и создать новый
             }
             else if (currentState == 4) {
                 int res = play->update(window, event);
-                if (res == 0) currentState = 3;  // назад в GameMenu
+                if (res == 0) {
+                    // ── ВАЖНО: сбрасываем вид на дефолтный перед возвратом в меню ──
+                    window.setView(window.getDefaultView());
+                    currentState = 3;
+                }
             }
         }
 
-        // ── 2. Логика/анимации (вне цикла событий!) ──────────────────────────
         if (currentState == 1) registration->updateLogic(window);
         if (currentState == 2) login->updateLogic(window);
         if (currentState == 3) gameMenu->updateLogic(window);
-        if (currentState == 4) play->updateLogic(window, dt);
+        if (currentState == 4 && play) play->updateLogic(window, dt);
 
-        // ── 3. Рисуем ────────────────────────────────────────────────────────
         window.clear(Color(30, 30, 30));
         if (currentState == -1) splash->render(window);
         else if (currentState == 0) menu->render(window);
         else if (currentState == 1) registration->render(window);
         else if (currentState == 2) login->render(window);
         else if (currentState == 3) gameMenu->render(window);
-        else if (currentState == 4) play->render(window);
+        else if (currentState == 4 && play) play->render(window);
         window.display();
     }
 }

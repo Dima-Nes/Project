@@ -8,9 +8,8 @@
 
 PlayState::PlayState(Database* db, const std::string& username,
     int savedSeed, float spawnX, float spawnY)
-    : db(db), username(username)
+    : db(db), username(username), paused(false)
 {
-    // Генерируем мир: если передан сохранённый сид — используем его
     int seed = (savedSeed == -1) ? (int)std::time(nullptr) : savedSeed;
     std::cout << "World seed: " << seed << std::endl;
     world.generate(seed);
@@ -18,8 +17,6 @@ PlayState::PlayState(Database* db, const std::string& username,
     if (!player.loadTexture("assets/knight.png"))
         std::cerr << "Warning: knight.png not found.\n";
 
-    // Если переданы сохранённые координаты — ставим игрока туда,
-    // иначе — стандартный спавн на поверхности
     if (spawnX >= 0.f && spawnY >= 0.f)
         player.spawnAt(spawnX, spawnY);
     else
@@ -30,74 +27,53 @@ PlayState::PlayState(Database* db, const std::string& username,
     hud.update(player);
 }
 
-// ─── Сохранение прогресса ─────────────────────────────────────────────────────
+// ─── Сохранение прогресса ────────────────────────────────────────────────────
 
 void PlayState::saveProgress() {
     if (!db) return;
     Vector2f pos = player.getCenter();
     db->saveWorld(username, world.getSeed(), pos.x, pos.y);
     db->updateHighScore(username, player.getScore());
+    std::cout << "Progress saved.\n";
 }
 
 // ─── Построение меню паузы ───────────────────────────────────────────────────
+// Вызывается один раз при первом update — когда window уже точно открыто.
 
 void PlayState::buildPauseMenu(RenderWindow& window) {
+    if (pauseBuilt) return; // ← обычный bool, не static
+    pauseBuilt = true;
+
     pauseFont.loadFromFile("assets/font.ttf");
 
     float W = (float)window.getSize().x;
     float H = (float)window.getSize().y;
     float cx = W / 2.f;
 
-    // Полупрозрачный фон на весь экран
     pauseOverlay.setSize({ W, H });
     pauseOverlay.setPosition(0.f, 0.f);
     pauseOverlay.setFillColor(Color(0, 0, 0, 160));
 
-    pauseTitle.setFont(pauseFont);
-    pauseTitle.setString(L"Пауза");
-    pauseTitle.setCharacterSize(72);
-    pauseTitle.setFillColor(Color::White);
-    {
-        FloatRect r = pauseTitle.getLocalBounds();
-        pauseTitle.setOrigin(r.left + r.width / 2.f, r.top + r.height / 2.f);
-    }
-    pauseTitle.setPosition(cx, H * 0.33f);
+    auto setupText = [&](Text& t, const wchar_t* s, int size, float y) {
+        t.setFont(pauseFont);
+        t.setString(s);
+        t.setCharacterSize(size);
+        t.setFillColor(Color::White);
+        FloatRect r = t.getLocalBounds();
+        t.setOrigin(r.left + r.width / 2.f, r.top + r.height / 2.f);
+        t.setPosition(cx, y);
+        };
 
-    btnResume.setFont(pauseFont);
-    btnResume.setString(L"Продолжить");
-    btnResume.setCharacterSize(54);
-    btnResume.setFillColor(Color::White);
-    {
-        FloatRect r = btnResume.getLocalBounds();
-        btnResume.setOrigin(r.left + r.width / 2.f, r.top + r.height / 2.f);
-    }
-    btnResume.setPosition(cx, H * 0.50f);
-
-    btnBackToMenu.setFont(pauseFont);
-    btnBackToMenu.setString(L"Выйти в главное меню");
-    btnBackToMenu.setCharacterSize(54);
-    btnBackToMenu.setFillColor(Color::White);
-    {
-        FloatRect r = btnBackToMenu.getLocalBounds();
-        btnBackToMenu.setOrigin(r.left + r.width / 2.f, r.top + r.height / 2.f);
-    }
-    btnBackToMenu.setPosition(cx, H * 0.62f);
+    setupText(pauseTitle, L"Пауза", 72, H * 0.33f);
+    setupText(btnResume, L"Продолжить", 54, H * 0.50f);
+    setupText(btnBackToMenu, L"Выйти в главное меню", 54, H * 0.62f);
 }
 
-// ─── Обновление меню паузы (события) ─────────────────────────────────────────
+// ─── Обновление меню паузы (события) ────────────────────────────────────────
 
 int PlayState::updatePauseMenu(RenderWindow& window, Event& event) {
-    // Кнопки в паузе рисуются в экранных координатах, поэтому
-    // используем стандартные координаты, а не camera view.
-    RenderWindow& win = window;
-
-    // Анимация кнопок (hover)
-    Vector2i mp = Mouse::getPosition(win);
-    Vector2f mouseScreen((float)mp.x, (float)mp.y);
-
-    // Обновляем цвет на hover (вызываем каждый кадр через updateLogic — здесь только события)
     if (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape) {
-        paused = false; // ESC снова → снять паузу
+        paused = false;
         return -1;
     }
 
@@ -110,7 +86,7 @@ int PlayState::updatePauseMenu(RenderWindow& window, Event& event) {
         }
         if (btnBackToMenu.getGlobalBounds().contains(m)) {
             saveProgress();
-            return 0; // выход в GameMenu
+            return 0; // → GameMenu
         }
     }
     return -1;
@@ -119,14 +95,13 @@ int PlayState::updatePauseMenu(RenderWindow& window, Event& event) {
 // ─── Рендер меню паузы ───────────────────────────────────────────────────────
 
 void PlayState::renderPauseMenu(RenderWindow& window) {
-    // Переключаемся на стандартный вид (экранные координаты)
+    // Рисуем поверх мира в экранных координатах
     window.setView(window.getDefaultView());
 
-    // Hover-анимация кнопок
     Vector2f mouse((float)Mouse::getPosition(window).x,
         (float)Mouse::getPosition(window).y);
-
     float dt = pauseAnimClock.restart().asSeconds();
+
     Text* btns[] = { &btnResume, &btnBackToMenu };
     for (auto* b : btns) {
         bool  hov = b->getGlobalBounds().contains(mouse);
@@ -146,7 +121,7 @@ void PlayState::renderPauseMenu(RenderWindow& window) {
     window.draw(btnResume);
     window.draw(btnBackToMenu);
 
-    // Возвращаем камеру обратно
+    // Возвращаем вид камеры обратно (для мира)
     window.setView(camera);
 }
 
@@ -156,7 +131,7 @@ void PlayState::updateCamera(RenderWindow& window) {
     float ww = (float)window.getSize().x;
     float wh = (float)window.getSize().y;
 
-    if (camera.getSize().x == 0) {
+    if (camera.getSize().x == 0.f) {
         camera.setSize(ww, wh);
         camera.setCenter(player.getCenter());
     }
@@ -177,14 +152,11 @@ void PlayState::updateCamera(RenderWindow& window) {
 // ─── update (события) ────────────────────────────────────────────────────────
 
 int PlayState::update(RenderWindow& window, Event& event) {
-    // Если меню паузы не построено при первом вызове — строим
-    static bool pauseBuilt = false;
-    if (!pauseBuilt) { buildPauseMenu(window); pauseBuilt = true; }
+    buildPauseMenu(window); // Строим один раз (внутри есть защита)
 
     if (paused)
         return updatePauseMenu(window, event);
 
-    // ESC → открываем паузу (не выходим сразу)
     if (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape) {
         paused = true;
         pauseAnimClock.restart();
@@ -198,7 +170,7 @@ int PlayState::update(RenderWindow& window, Event& event) {
 // ─── updateLogic ─────────────────────────────────────────────────────────────
 
 void PlayState::updateLogic(RenderWindow& window, float dt) {
-    if (paused) return; // Физика на паузе не обновляется
+    if (paused) return;
 
     player.update(dt, world);
     hud.update(player);
