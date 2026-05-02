@@ -5,11 +5,13 @@
 #include "HUD.h"
 #include "Database.h"
 #include <string>
+#include "Background.h"
 
 using namespace sf;
 
 class PlayState : public State {
 private:
+    Background background;
     World   world;
     Player  player;
     HUD     hud;

@@ -54,8 +54,15 @@ void World::generate(int s) {
             else                    tiles[x][y] = TileType::Stone;
         }
     }
+    // Каменные стены по краям мира — игрок физически не пройдёт
+    for (int y = 0; y < HEIGHT; ++y) {
+        tiles[0][y] = TileType::Stone;
+        tiles[1][y] = TileType::Stone;
+        tiles[WIDTH - 1][y] = TileType::Stone;
+        tiles[WIDTH - 2][y] = TileType::Stone;
+    }
 }
-
+ 
 // ─── Доступ ───────────────────────────────────────────────────────────────────
 
 TileType World::get(int x, int y) const {

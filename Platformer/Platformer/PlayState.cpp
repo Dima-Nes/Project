@@ -13,9 +13,11 @@ PlayState::PlayState(Database* db, const std::string& username,
     int seed = (savedSeed == -1) ? (int)std::time(nullptr) : savedSeed;
     std::cout << "World seed: " << seed << std::endl;
     world.generate(seed);
+    background.load("assets/bg");
+    camera = View(); // сброс в дефолт — размер станет 0, initCamera сработает
 
-    if (!player.loadTexture("assets/knight.png"))
-        std::cerr << "Warning: knight.png not found.\n";
+    if (!player.loadTexture("assets/adventurer.png"))
+        std::cerr << "Warning: adventurer.png not found.\n";
 
     if (spawnX >= 0.f && spawnY >= 0.f)
         player.spawnAt(spawnX, spawnY);
@@ -131,21 +133,31 @@ void PlayState::updateCamera(RenderWindow& window) {
     float ww = (float)window.getSize().x;
     float wh = (float)window.getSize().y;
 
-    if (camera.getSize().x == 0.f) {
+    if (camera.getSize().x < 1.f) {
         camera.setSize(ww, wh);
         camera.setCenter(player.getCenter());
     }
 
     float worldW = World::WIDTH * World::TILE_SIZE;
     float worldH = World::HEIGHT * World::TILE_SIZE;
+    float hw = ww / 2.f, hh = wh / 2.f;
 
     Vector2f target = player.getCenter();
-    float hw = ww / 2.f, hh = wh / 2.f;
-    target.x = std::max(hw, std::min(target.x, worldW - hw));
-    target.y = std::max(hh, std::min(target.y, worldH - hh));
+
+    // Зажимаем ЦЕЛЬ камеры строго в границах
+    float clampedX = std::max(hw, std::min(target.x, worldW - hw));
+    float clampedY = std::max(hh, std::min(target.y, worldH - hh));
 
     Vector2f cur = camera.getCenter();
-    camera.setCenter(cur + (target - cur) * 0.12f);
+
+    // У границ — мгновенный снэп, внутри мира — плавный lerp
+    float lerpX = (clampedX <= hw || clampedX >= worldW - hw) ? 1.f : 0.12f;
+    float lerpY = (clampedY <= hh || clampedY >= worldH - hh) ? 1.f : 0.12f;
+
+    camera.setCenter(
+        cur.x + (clampedX - cur.x) * lerpX,
+        cur.y + (clampedY - cur.y) * lerpY
+    );
     window.setView(camera);
 }
 
@@ -180,9 +192,10 @@ void PlayState::updateLogic(RenderWindow& window, float dt) {
 // ─── render ──────────────────────────────────────────────────────────────────
 
 void PlayState::render(RenderWindow& window) {
+    background.render(window, camera);
     world.render(window, camera);
     player.render(window);
-    hud.render(window);
+    hud.render(window);//Идет слоями что бы была иерархия и фон не перекрывал все
 
     if (paused)
         renderPauseMenu(window);

@@ -4,9 +4,8 @@
 using namespace std;
 
 MainMenuState::MainMenuState() {
-    if (!mainFont.loadFromFile("assets/font.ttf")) {
+    if (!mainFont.loadFromFile("assets/font.ttf"))
         cout << "ERROR: Font not found in assets folder!" << endl;
-    }
 
     float centerX = VideoMode::getDesktopMode().width / 2.0f;
 
@@ -33,34 +32,14 @@ MainMenuState::MainMenuState() {
 }
 
 void MainMenuState::centerText(Text& text) {
-    FloatRect r = text.getLocalBounds();
-    text.setOrigin(r.left + r.width / 2.0f, r.top + r.height / 2.0f);
+    FloatRect textRect = text.getLocalBounds();
+    text.setOrigin(textRect.left + textRect.width / 2.0f,
+        textRect.top + textRect.height / 2.0f);
 }
 
-int MainMenuState::update(RenderWindow& window, Event& event) {
-    // Обрабатываем только событие клика (не опрос) — исключаем многократный триггер
-    if (event.type != Event::MouseButtonPressed) return 0;
-    if (event.mouseButton.button != Mouse::Left)  return 0;
-
-    Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
-
-    // ─── ИСПРАВЛЕНО (применён MainMenuState_PATCH.txt) ───────────────────────
-    if (loginBtn.getGlobalBounds().contains(mouse))    return 1;  // → LoginState
-    if (registerBtn.getGlobalBounds().contains(mouse)) return 2;  // → RegistrationState
-    if (exitBtn.getGlobalBounds().contains(mouse)) { window.close(); }
-
-    return 0;
-}
-
-void MainMenuState::render(RenderWindow& window) {
-    // Анимация hover — выполняется каждый кадр через updateLogic
-    window.draw(loginBtn);
-    window.draw(registerBtn);
-    window.draw(exitBtn);
-}
+// ─── updateLogic — вызывается каждый кадр из Game.cpp ────────────────────────
 
 void MainMenuState::updateLogic(RenderWindow& window) {
-    static Clock animClock;
     float dt = animClock.restart().asSeconds();
 
     Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
@@ -68,17 +47,38 @@ void MainMenuState::updateLogic(RenderWindow& window) {
 
     for (auto* btn : buttons) {
         bool  hovered = btn->getGlobalBounds().contains(mouse);
-        float targetScale = hovered ? 1.15f : 1.0f;
+        float targetScale = hovered ? 1.2f : 1.0f;
         Color targetColor = hovered ? Color::Yellow : Color::White;
 
-        float s = btn->getScale().x + (targetScale - btn->getScale().x) * 8.f * dt;
+        float s = btn->getScale().x + (targetScale - btn->getScale().x) * 8.0f * dt;
         btn->setScale(s, s);
 
         Color c = btn->getFillColor();
         btn->setFillColor(Color(
-            (sf::Uint8)(c.r + (targetColor.r - c.r) * 8.f * dt),
-            (sf::Uint8)(c.g + (targetColor.g - c.g) * 8.f * dt),
-            (sf::Uint8)(c.b + (targetColor.b - c.b) * 8.f * dt)
+            (sf::Uint8)(c.r + (targetColor.r - c.r) * 8.0f * dt),
+            (sf::Uint8)(c.g + (targetColor.g - c.g) * 8.0f * dt),
+            (sf::Uint8)(c.b + (targetColor.b - c.b) * 8.0f * dt)
         ));
     }
+}
+
+// ─── update — только события/клики ───────────────────────────────────────────
+
+int MainMenuState::update(RenderWindow& window, Event& event) {
+    if (event.type != Event::MouseButtonPressed) return 0;
+    if (event.mouseButton.button != Mouse::Left)  return 0;
+
+    Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
+
+    if (loginBtn.getGlobalBounds().contains(mouse))    return 1;
+    if (registerBtn.getGlobalBounds().contains(mouse)) return 2;
+    if (exitBtn.getGlobalBounds().contains(mouse)) { window.close(); }
+
+    return 0;
+}
+
+void MainMenuState::render(RenderWindow& window) {
+    window.draw(loginBtn);
+    window.draw(registerBtn);
+    window.draw(exitBtn);
 }
