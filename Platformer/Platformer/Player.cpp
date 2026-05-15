@@ -1,4 +1,5 @@
-﻿#include "Player.h"
+﻿#include <iostream>
+#include "Player.h"
 #include <cmath>
 #include <algorithm>
 
@@ -61,24 +62,76 @@ bool Player::loadTexture(const std::string& path) {
 
 // ─── Спавн ───────────────────────────────────────────────────────────────────
 
-void Player::spawn(const World& world) {
-    int midX = World::WIDTH / 2;
-    float surfY = world.surfacePixelY(midX);
+void Player::spawnAt(float x, float y, const World& world) {
+    std::cout << "spawnAt called: x=" << x << " y=" << y << std::endl;
+    // X берём из сохранения, Y пересчитываем по реальной поверхности
+    int tileX = (int)(x / World::TILE_SIZE);
+    tileX = std::max(2, std::min(tileX, World::WIDTH - 3));
+
+    float surfY = world.surfacePixelY(tileX);
+
     pos = {
-        (float)(midX * World::TILE_SIZE) - HITBOX_W / 2.f,
-        surfY - HITBOX_H
+        x - HITBOX_W / 2.f,
+        surfY - HITBOX_H - (float)(4 * World::TILE_SIZE)  // 4 тайла выше земли
     };
     vel = { 0.f, 0.f };
     onGround = false;
     coyoteTimer = 0.f;
+
+    // Страховка на случай нависающих блоков
+    for (int i = 0; i < 20 * World::TILE_SIZE; ++i) {
+        float l = pos.x + 2.f;
+        float r = pos.x + HITBOX_W - 2.f;
+        bool stuck = world.isSolidAt(l, pos.y)
+            || world.isSolidAt(r, pos.y)
+            || world.isSolidAt(l, pos.y + HITBOX_H - 1.f)
+            || world.isSolidAt(r, pos.y + HITBOX_H - 1.f);
+        if (!stuck) break;
+        pos.y -= 1.f;
+
+    }
+
     animator.play(clipIdle);
 }
 
-void Player::spawnAt(float x, float y) {
-    pos = { x - HITBOX_W / 2.f, y - HITBOX_H / 2.f };
+void Player::spawn(const World& world) {
+    int midX = World::WIDTH / 2;
+    float surfY = world.surfacePixelY(midX);
+
+    std::cout << "spawn: midX=" << midX
+        << " surfY=" << surfY
+        << " TILE_SIZE=" << World::TILE_SIZE
+        << " isSolid at surface=" << world.isSolidAt(midX * World::TILE_SIZE, surfY)
+        << std::endl;
+
+
+    // Ставим игрока на 4 тайла выше поверхности
+    pos = {
+        (float)(midX * World::TILE_SIZE) - HITBOX_W / 2.f,
+        surfY - HITBOX_H - (float)(4 * World::TILE_SIZE)
+    };
     vel = { 0.f, 0.f };
     onGround = false;
     coyoteTimer = 0.f;
+
+    // Если всё равно попали в блок — выталкиваем вверх
+    for (int i = 0; i < 20 * World::TILE_SIZE; ++i) {
+        float l = pos.x + 2.f;
+        float r = pos.x + HITBOX_W - 2.f;
+        float t = pos.y;
+        float b = pos.y + HITBOX_H - 1.f;
+
+        bool stuck = world.isSolidAt(l, t) || world.isSolidAt(r, t)
+            || world.isSolidAt(l, b) || world.isSolidAt(r, b);
+        if (!stuck) break;
+        pos.y -= 1.f;
+    }
+
+    std::cout << "spawn result: pos.y=" << pos.y
+        << " bottom=" << (pos.y + HITBOX_H)
+        << " stuck=" << world.isSolidAt(pos.x + 2.f, pos.y + HITBOX_H - 1.f)
+        << std::endl;
+
     animator.play(clipIdle);
 }
 
@@ -90,9 +143,7 @@ void Player::handleEvent(const Event& event) {
             || event.key.code == Keyboard::W
             || event.key.code == Keyboard::Up;
         if (jumpKey && (onGround || coyoteTimer > 0.f)) {
-            vel.y = -JUMP_SPEED;
-            onGround = false;
-            coyoteTimer = 0.f;
+            jumpBuffer = JUMP_BUFFER_TIME;
         }
     }
 
@@ -161,6 +212,35 @@ void Player::moveY(const World& world, float dy) {
 // ─── Обновление ──────────────────────────────────────────────────────────────
 
 void Player::update(float dt, const World& world) {
+
+    // ── Буфер прыжка ─────────────────────────────────────────────────────────
+    // ── Таймер неуязвимости ───────────────────────────────────────────────────
+    if (playerInvincibleTimer > 0.f) playerInvincibleTimer -= dt;
+
+    // ── Прыжок — буфер + прямая проверка клавиши ─────────────────────────────
+    bool jumpHeld = Keyboard::isKeyPressed(Keyboard::Space)
+        || Keyboard::isKeyPressed(Keyboard::W)
+        || Keyboard::isKeyPressed(Keyboard::Up);
+
+    if (jumpBuffer > 0.f) jumpBuffer -= dt;
+
+    bool canJump = onGround || coyoteTimer > 0.f;
+    if (canJump && (jumpHeld || jumpBuffer > 0.f) && !jumpConsumed) {
+        vel.y = -JUMP_SPEED;
+        onGround = false;
+        coyoteTimer = 0.f;
+        jumpBuffer = 0.f;
+        jumpConsumed = true;
+    }
+    if (!jumpHeld) jumpConsumed = false;
+
+    // ── Регенерация HP ────────────────────────────────────────────────────────
+    regenTimer += dt;
+    if (regenTimer >= REGEN_INTERVAL && lives < MAX_HP) {
+        regenTimer = 0.f;
+        ++lives;
+    }
+
     // 1. Горизонтальный ввод
     float moveX = 0.f;
     if (Keyboard::isKeyPressed(Keyboard::A) || Keyboard::isKeyPressed(Keyboard::Left))
@@ -168,7 +248,7 @@ void Player::update(float dt, const World& world) {
     if (Keyboard::isKeyPressed(Keyboard::D) || Keyboard::isKeyPressed(Keyboard::Right))
         moveX += 1.f;
 
-    vel.x = moveX * MOVE_SPEED;
+    vel.x = moveX * MOVE_SPEED * (isAttacking ? ATTACK_SLOWDOWN : 1.0f);
 
     // 2. Гравитация
     if (!onGround)
@@ -218,11 +298,8 @@ void Player::update(float dt, const World& world) {
 
     // 6. Анимация
     if (isAttacking) {
-        // Замедляем персонажа во время атаки
-        vel.x *= ATTACK_SLOWDOWN;
-
+        vel.x *= ATTACK_SLOWDOWN;  // 0.15f — уже есть
         animator.update(dt);
-
         if (animator.isFinished()) {
             isAttacking = false;
             animator.play(clipIdle, true);
@@ -244,14 +321,29 @@ void Player::update(float dt, const World& world) {
 // ─── Рендер ──────────────────────────────────────────────────────────────────
 
 void Player::render(RenderWindow& window) {
+    // Мигание при неуязвимости — каждые 0.1с
+    if (playerInvincibleTimer > 0.f &&
+        (int)(playerInvincibleTimer * 10) % 2 == 0)
+        return;
+
+    // ... остальной код render без изменений
+
     float cx = pos.x + HITBOX_W / 2.f;
     float cy = pos.y + HITBOX_H / 2.f;
 
     sprite.setTextureRect(animator.getCurrentRect());
     sprite.setPosition(cx, cy);
 
-    float sx = animator.isFlipped() ? -SPRITE_SCALE : SPRITE_SCALE;
-    sprite.setScale(sx, SPRITE_SCALE);
+    float sx = animator.isFlipped() ? -SPRITE_SCALE_X : SPRITE_SCALE_X;
+    sprite.setScale(sx, SPRITE_SCALE_Y);
 
     window.draw(sprite);
+}
+
+
+void Player::respawn(const World& world) {
+    lives = MAX_HP;
+    regenTimer = 0.f;
+    score = std::max(0, score - 50);
+    spawn(world);
 }

@@ -5,57 +5,86 @@
 
 using namespace sf;
 
-// ─── Типы тайлов ──────────────────────────────────────────────────────────────
 enum class TileType : uint8_t {
-    Air = 0,
-    Grass = 1,
-    Dirt = 2,
-    Stone = 3
+    Air = 0, Grass = 1, Dirt = 2, Stone = 3
 };
 
-// ─── World ────────────────────────────────────────────────────────────────────
-// Хранит тайловую карту, генерирует её по сиду (шум Перлина),
-// рисует только видимую область через VertexArray (быстро).
+enum class BiomeType : uint8_t {
+    Forest = 0,
+    Autumn = 1,
+    Desert = 2,
+    Winter = 3
+};
+
+enum class DecorType : uint8_t {
+    None = 0,
+    Grass,          // короткая трава
+    TallGrass,      // высокая трава
+    Tree,           // большая ель (лес/осень)
+    SmallTree,      // маленькая ель (зима)
+    Palm,           // пальма (пустыня)
+    DeadTree,       // мёртвое дерево
+    Cactus,         // кактус
+    Bush,           // куст
+    Pumpkin         // тыква (лес)
+};
+
+struct BiomeZone {
+    int startX, endX;
+    BiomeType type;
+};
 
 class World {
 public:
-    // ─── Параметры мира (меняй здесь) ─────────────────────────────────────────
-    static constexpr int TILE_SIZE = 32;   // пикселей на тайл
-    static constexpr int WIDTH = 800;  // тайлов в ширину
-    static constexpr int HEIGHT = 150;  // тайлов в высоту
-    static constexpr int SEA_LEVEL = 80;   // базовая строка поверхности
+    static constexpr int TILE_SIZE = 32;
+    static constexpr int WIDTH = 8000;  // было 800
+    static constexpr int HEIGHT = 200;   // было 150, глубже для большего мира
+    static constexpr int SEA_LEVEL = 110;   // было 80, пропорционально
+
+    // ─── UV тайлов в листах биомов (одинаковы для всех 4 листов) ─────────────
+    // Grass: (2, 50, 12, 12)   Dirt: (2, 62, 12, 12)
+    // Stone: цвет-фолбэк (добавим позже)
+
+    // ─── UV декораций в staticObjects_.png (288×144) ──────────────────────────
+    static constexpr int DEC_SCALE = 3; // пиксель-арт масштаб декораций
 
 private:
-    std::vector<std::vector<TileType>> tiles; // tiles[x][y]
+    int getTextureBiome(int x) const;
+
+    std::vector<std::vector<TileType>> tiles;
+    std::vector<DecorType>             decors;
+    std::vector<BiomeZone>             biomes;
+
+    Texture biomeTex[4];
+    bool    texLoaded[4] = {};
+
+    Texture decorTex;
+    bool    decorTexLoaded = false;
+
     int seed = 0;
 
-    // ─── Шум ──────────────────────────────────────────────────────────────────
-    // valueNoise: псевдослучайное значение [0,1] для целого x
     float valueNoise(int x) const;
-    // smoothNoise: интерполирует между двумя valueNoise с smoothstep
     float smoothNoise(float x) const;
-    // octaveNoise: суммирует несколько октав (fractal noise)
     float octaveNoise(float x, int octaves, float persistence) const;
+
+    void generateBiomes();
+    void generateTerrain();
+    void generateDecorations();
+
+    void renderDecorations(RenderWindow& window, const View& cam) const;
 
 public:
     World();
-
-    // Генерировать мир по сиду. Вызывать один раз перед игрой.
+    bool loadTextures(const std::string& path = "assets/");
     void generate(int s);
 
-    // ─── Доступ к тайлам ──────────────────────────────────────────────────────
-    TileType get(int x, int y) const;
-    bool     isSolid(int x, int y) const;
 
-    // Пиксельные координаты → твёрдый ли тайл?
-    bool     isSolidAt(float px, float py) const;
+    TileType  get(int x, int y)           const;
+    bool      isSolid(int x, int y)       const;
+    bool      isSolidAt(float px, float py) const;
+    float     surfacePixelY(int tileX)    const;
+    BiomeType getBiomeAt(int tileX)       const;
+    int       getSeed()                   const { return seed; }
 
-    // Pixel Y верхней грани поверхности в колонке tileX
-    float    surfacePixelY(int tileX) const;
-
-    int      getSeed() const { return seed; }
-
-    // ─── Рендер ───────────────────────────────────────────────────────────────
-    // Рисует только тайлы, попадающие в текущий View камеры.
     void render(RenderWindow& window, const View& cam) const;
 };

@@ -28,10 +28,14 @@ public:
 
     static constexpr float COYOTE_TIME = 0.10f;
 
-    static constexpr float HITBOX_W = 30.f;
-    static constexpr float HITBOX_H = 44.f;
-    static constexpr float SPRITE_SCALE = 2.0f;
+    static constexpr float HITBOX_W = 26.f;
+    static constexpr float HITBOX_H = 58.f;
+    static constexpr float SPRITE_SCALE = 1.f;
 
+    static constexpr float SPRITE_SCALE_X = 1.6f;
+    static constexpr float SPRITE_SCALE_Y = 2.6f;  // 38 * 3.8 ≈ 144px ≈ 4.5 тайла с учётом прозрачности
+
+    static constexpr float PLAYER_INVINCIBLE_TIME = 0.8f;
 private:
     // Спрайт и анимация
     Texture  tex;
@@ -47,7 +51,7 @@ private:
 
     // Характеристики игрока
     int score = 0;
-    int lives = 3;
+    int lives = 5;
 
     // ─── Внутренние методы ────────────────────────────────────────────────────
     void buildClips();
@@ -57,15 +61,25 @@ private:
     AnimClip clipAttack;
     bool     isAttacking = false;
 
+    static constexpr int   MAX_HP = 5;
+    static constexpr float REGEN_INTERVAL = 30.f;
+    static constexpr float JUMP_BUFFER_TIME = 0.15f;
+
+    float jumpBuffer = 0.f;
+    float regenTimer = 0.f;
+
+    float playerInvincibleTimer = 0.f;
+    bool  jumpConsumed = false;
 public:
     Player();
 
     bool loadTexture(const std::string& path);
     void spawn(const World& world);
-    void spawnAt(float x, float y);
+    void spawnAt(float x, float y, const World& world);
     void handleEvent(const Event& event);
     void update(float dt, const World& world);
     void render(RenderWindow& window);
+    bool getIsAttacking() const { return isAttacking; }
 
     // ─── Геттеры ──────────────────────────────────────────────────────────────
     Vector2f  getCenter()  const { return pos + Vector2f(HITBOX_W / 2.f, HITBOX_H / 2.f); }
@@ -74,5 +88,15 @@ public:
     int       getLives()   const { return lives; }
 
     void addScore(int v) { score += v; }
-    void loseLife() { if (lives > 0) --lives; }
+    void loseLife() {
+        if (playerInvincibleTimer > 0.f) return; // неуязвима
+        if (lives > 0) {
+            --lives;
+            playerInvincibleTimer = PLAYER_INVINCIBLE_TIME;
+        }
+    }
+
+    bool isDeadByHP() const { return lives <= 0; }
+    void respawn(const World& world);
+    void loseScore(int v) { score = std::max(0, score - v); }
 };

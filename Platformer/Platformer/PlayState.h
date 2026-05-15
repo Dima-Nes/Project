@@ -6,11 +6,13 @@
 #include "Database.h"
 #include <string>
 #include "Background.h"
+#include "EnemyManager.h"
 
 using namespace sf;
 
 class PlayState : public State {
 private:
+    EnemyManager enemyManager;
     Background background;
     World   world;
     Player  player;
@@ -40,6 +42,9 @@ private:
 
     // ─── Сохранение ───────────────────────────────────────────────────────────
     void saveProgress();
+
+    bool deathScreenActive = false;
+    void renderDeathScreen(RenderWindow& window);
 
 public:
     PlayState(Database* db, const std::string& username,

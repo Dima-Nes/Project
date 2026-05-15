@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <iostream>
 
+
+
 // ─── Конструктор ─────────────────────────────────────────────────────────────
 
 PlayState::PlayState(Database* db, const std::string& username,
@@ -13,20 +15,32 @@ PlayState::PlayState(Database* db, const std::string& username,
     int seed = (savedSeed == -1) ? (int)std::time(nullptr) : savedSeed;
     std::cout << "World seed: " << seed << std::endl;
     world.generate(seed);
-    background.load("assets/bg");
+    bool texOk = world.loadTextures("assets/");
+    std::cout << "Textures loaded: " << texOk << std::endl;
+    world.loadTextures("assets/");
+    background.load("assets/bg", "assets/bg/Cloud Pack");
     camera = View(); // сброс в дефолт — размер станет 0, initCamera сработает
 
     if (!player.loadTexture("assets/adventurer.png"))
         std::cerr << "Warning: adventurer.png not found.\n";
 
     if (spawnX >= 0.f && spawnY >= 0.f)
-        player.spawnAt(spawnX, spawnY);
+        player.spawnAt(spawnX, spawnY, world);
     else
         player.spawn(world);
+
+    // Вне if-else — вызывается всегда
+    enemyManager.generate(world, username, db);
 
     if (!hud.loadFont("assets/font.ttf"))
         std::cerr << "Warning: font.ttf not found.\n";
     hud.update(player);
+
+    if (!hud.loadFont("assets/font.ttf"))
+        std::cerr << "Warning: font.ttf not found.\n";
+    hud.update(player);
+
+    std::cout << "spawnX=" << spawnX << " spawnY=" << spawnY << std::endl;
 }
 
 // ─── Сохранение прогресса ────────────────────────────────────────────────────
@@ -36,6 +50,7 @@ void PlayState::saveProgress() {
     Vector2f pos = player.getCenter();
     db->saveWorld(username, world.getSeed(), pos.x, pos.y);
     db->updateHighScore(username, player.getScore());
+    enemyManager.savePositions(username, db);   // ← добавить
     std::cout << "Progress saved.\n";
 }
 
@@ -166,6 +181,17 @@ void PlayState::updateCamera(RenderWindow& window) {
 int PlayState::update(RenderWindow& window, Event& event) {
     buildPauseMenu(window); // Строим один раз (внутри есть защита)
 
+    // Экран смерти
+    if (deathScreenActive) {
+        if (event.type == Event::KeyPressed ||
+            event.type == Event::MouseButtonPressed) {
+            deathScreenActive = false;
+            player.respawn(world);
+            window.setView(camera);
+        }
+        return -1;
+    }
+
     if (paused)
         return updatePauseMenu(window, event);
 
@@ -183,10 +209,13 @@ int PlayState::update(RenderWindow& window, Event& event) {
 
 void PlayState::updateLogic(RenderWindow& window, float dt) {
     if (paused) return;
-
     player.update(dt, world);
+    enemyManager.update(dt, world, player);   // ← добавить
     hud.update(player);
     updateCamera(window);
+    // Проверка смерти
+    if (player.isDeadByHP())
+        deathScreenActive = true;
 }
 
 // ─── render ──────────────────────────────────────────────────────────────────
@@ -194,9 +223,39 @@ void PlayState::updateLogic(RenderWindow& window, float dt) {
 void PlayState::render(RenderWindow& window) {
     background.render(window, camera);
     world.render(window, camera);
+    enemyManager.render(window);   // ← добавить (между миром и игроком)
     player.render(window);
-    hud.render(window);//Идет слоями что бы была иерархия и фон не перекрывал все
+    hud.render(window);
+    if (paused) renderPauseMenu(window);
+    if (deathScreenActive)
+        renderDeathScreen(window);
+}
 
-    if (paused)
-        renderPauseMenu(window);
+void PlayState::renderDeathScreen(RenderWindow& window) {
+    window.setView(window.getDefaultView());
+    float W = (float)window.getSize().x;
+    float H = (float)window.getSize().y;
+
+    // Красный полупрозрачный оверлей
+    RectangleShape overlay({ W, H });
+    overlay.setFillColor(Color(160, 0, 0, 180));
+    window.draw(overlay);
+
+    auto makeText = [&](const wchar_t* str, int size, float y) {
+        Text t;
+        t.setFont(pauseFont);
+        t.setString(str);
+        t.setCharacterSize(size);
+        t.setFillColor(Color::White);
+        FloatRect r = t.getLocalBounds();
+        t.setOrigin(r.left + r.width / 2.f, r.top + r.height / 2.f);
+        t.setPosition(W / 2.f, y);
+        window.draw(t);
+        };
+
+    makeText(L"Вы погибли", 80, H * 0.38f);
+    makeText(L"-50 очков", 42, H * 0.50f);
+    makeText(L"Нажмите любую клавишу для возрождения", 34, H * 0.60f);
+
+    window.setView(camera);
 }

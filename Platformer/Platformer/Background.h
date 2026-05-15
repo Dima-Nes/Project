@@ -1,29 +1,42 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <string>
+#include "World.h"
+
 using namespace sf;
 
 struct BgLayer {
     Texture texture;
-    float   parallax;   // 0.0 = не движется, 1.0 = движется как камера
-    float   scrollX;    // для облаков — автоскролл px/s
-    float   opacity;    // 0-255
+    float   parallaxX = 0.f;
+    float   parallaxY = 0.f;
+};
+
+struct CloudSprite {
+    Sprite sprite;
+    float  speed, x, y, scale;
 };
 
 class Background {
 public:
-    // Загрузить слои. Порядок = от дальнего к ближнему.
-    bool load(const std::string& folder);
-
-    // Вызывать каждый кадр до рендера мира.
-    void update(float dt);
+    bool load(const std::string& folder, const std::string& cloudFolder);
+    void update(float dt, const View& camera);
     void render(RenderWindow& window, const View& camera);
 
 private:
-    std::vector<BgLayer> layers;
-    Color skyTop = Color(100, 149, 237);  // cornflowerblue
-    Color skyBottom = Color(176, 226, 255);
+    Texture skyTex;
+    bool    hasSky = false;
 
-    void drawGradient(RenderWindow& window, const View& camera);
-    void drawLayer(RenderWindow& window, const View& camera, BgLayer& layer);
+    std::vector<BgLayer>     layers;
+    std::vector<Texture>     cloudTextures;
+    std::vector<CloudSprite> clouds;
+    bool cloudsInited = false;
+
+    static constexpr int CLOUD_COUNT = 12;
+
+    void drawSky(RenderWindow& window, const View& camera);
+    void drawLayer(RenderWindow& window, const View& camera, const BgLayer& layer);
+    void drawClouds(RenderWindow& window, const View& camera);
+    void initClouds(const View& camera);
+    void wrapCloud(CloudSprite& c, const View& camera);
 };

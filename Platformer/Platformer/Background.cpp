@@ -1,88 +1,192 @@
 #include "Background.h"
 #include <cmath>
+#include <cstdlib>
+#include <iostream>
 
-bool Background::load(const std::string& folder) {
-    // Описание слоёв: файл, параллакс, автоскролл, прозрачность
-    struct Desc { std::string file; float parallax; float scroll; float opacity; };
+static const float WORLD_MID_X = (float)(World::WIDTH * World::TILE_SIZE) / 2.f;
+static const float SURFACE_Y = (float)(World::SEA_LEVEL * World::TILE_SIZE);
+
+bool Background::load(const std::string& folder, const std::string& cloudFolder) {
+
+    if (skyTex.loadFromFile(folder + "/forest/forest_sky.png")) {
+        skyTex.setSmooth(false);
+        skyTex.setRepeated(true);
+        hasSky = true;
+    }
+    else std::cerr << "BG: forest_sky.png not found\n";
+
+    // parallaxX: насколько медленнее камеры движется по горизонтали
+    // parallaxY: насколько медленнее камеры движется по вертикали
+    //
+    // ВАЖНО: parallaxY должен быть БЛИЗОК к parallaxX.
+    // Если parallaxY мал — слой "падает" вниз при взгляде вверх и закрывает небо.
+    // Если parallaxY велик — слой движется почти как камера, глубины нет.
+    struct Desc { std::string path; float px; float py; };
     std::vector<Desc> descs = {
-        { folder + "/skies/Sky_back_mountain.png", 0.10f,  0.f,   255 },
-        { folder + "/forest/forest_back.png", 0.25f,  0.f,   220 },
-        { folder + "/forest/forest_mid.png", 0.40f,  0.f,   200 },
-        { folder + "/forest/forest_sky.png",    0.05f, 20.f,   180 },  // облака сами едут
+        { folder + "/forest/forest_mountain.png", 0.10f, 0.10f },
+        { folder + "/forest/forest_back.png",     0.20f, 0.20f },
+        { folder + "/forest/forest_mid.png",      0.32f, 0.32f },
+        { folder + "/forest/forest_long.png",     0.44f, 0.44f },
+        { folder + "/forest/forest_short.png",    0.60f, 0.60f },
     };
 
     for (auto& d : descs) {
         BgLayer layer;
-        if (!layer.texture.loadFromFile(d.file)) continue; // пропускаем если нет файла
-        layer.texture.setRepeated(true);   // ← ключевое: текстура тайлится по X
-        layer.parallax = d.parallax;
-        layer.scrollX = d.scroll;
-        layer.opacity = d.opacity;
+        if (!layer.texture.loadFromFile(d.path)) {
+            std::cerr << "BG: not found: " << d.path << "\n";
+            continue;
+        }
+        layer.texture.setSmooth(false);
+        layer.texture.setRepeated(true);
+        layer.parallaxX = d.px;
+        layer.parallaxY = d.py;
         layers.push_back(std::move(layer));
     }
+
+    for (int i = 1; i <= 20; ++i) {
+        Texture t;
+        if (t.loadFromFile(cloudFolder + "/Cloud " + std::to_string(i) + ".png")) {
+            t.setSmooth(false);
+            cloudTextures.push_back(std::move(t));
+        }
+    }
+    if (cloudTextures.empty())
+        std::cerr << "BG: no clouds in " << cloudFolder << "\n";
+
     return true;
 }
 
-void Background::update(float dt) {
-    for (auto& l : layers)
-        l.scrollX += l.scrollX * dt;  // накапливаем сдвиг облаков
+// ─── Облака ──────────────────────────────────────────────────────────────────
+
+void Background::initClouds(const View& camera) {
+    if (cloudTextures.empty()) return;
+    cloudsInited = true;
+    clouds.clear();
+
+    float camX = camera.getCenter().x;
+    float camW = camera.getSize().x;
+    float camH = camera.getSize().y;
+
+    float cloudMinY = SURFACE_Y - camH * 1.2f;
+    float cloudMaxY = SURFACE_Y - camH * 0.15f;
+
+    for (int i = 0; i < CLOUD_COUNT; ++i) {
+        CloudSprite c;
+        int idx = std::rand() % (int)cloudTextures.size();
+        c.scale = 0.7f + (std::rand() % 70) / 100.f;
+        c.speed = 12.f + std::rand() % 40;
+        c.x = camX - camW * 0.5f + (float)(std::rand() % (int)(camW * 1.5f));
+        c.y = cloudMinY + (float)(std::rand() % std::max(1, (int)(cloudMaxY - cloudMinY)));
+        c.sprite.setTexture(cloudTextures[idx]);
+        c.sprite.setScale(c.scale, c.scale);
+        c.sprite.setPosition(c.x, c.y);
+        clouds.push_back(std::move(c));
+    }
 }
 
-// Градиентное небо — два треугольника поверх всего
-void Background::drawGradient(RenderWindow& window, const View& cam) {
-    Vector2f center = cam.getCenter();
-    Vector2f half = cam.getSize() * 0.5f;
-    float L = center.x - half.x;
-    float R = center.x + half.x;
-    float T = center.y - half.y;
-    float B = center.y + half.y;
+void Background::wrapCloud(CloudSprite& c, const View& camera) {
+    float camX = camera.getCenter().x;
+    float camW = camera.getSize().x;
+    float camH = camera.getSize().y;
+    auto* tex = c.sprite.getTexture();
+    if (!tex) return;
+    float cw = tex->getSize().x * c.scale;
 
-    // Интерполируем цвет сверху вниз
-    VertexArray quad(Quads, 4);
-    quad[0] = Vertex({ L, T }, skyTop);
-    quad[1] = Vertex({ R, T }, skyTop);
-    quad[2] = Vertex({ R, B }, skyBottom);
-    quad[3] = Vertex({ L, B }, skyBottom);
-    window.draw(quad);
+    if (c.x > camX + camW * 0.5f + cw) {
+        int idx = std::rand() % (int)cloudTextures.size();
+        c.sprite.setTexture(cloudTextures[idx]);
+        c.scale = 0.7f + (std::rand() % 70) / 100.f;
+        c.speed = 12.f + std::rand() % 40;
+        c.x = camX - camW * 0.5f - cloudTextures[idx].getSize().x * c.scale;
+
+        float cloudMinY = SURFACE_Y - camH * 1.2f;
+        float cloudMaxY = SURFACE_Y - camH * 0.15f;
+        c.y = cloudMinY + (float)(std::rand() % std::max(1, (int)(cloudMaxY - cloudMinY)));
+        c.sprite.setScale(c.scale, c.scale);
+    }
 }
 
-void Background::drawLayer(RenderWindow& window, const View& cam, BgLayer& layer) {
-    Vector2f center = cam.getCenter();
-    Vector2f size = cam.getSize();
-    Vector2f half = size * 0.5f;
+void Background::update(float dt, const View& camera) {
+    if (!cloudsInited) initClouds(camera);
+    for (auto& c : clouds) {
+        c.x += c.speed * dt;
+        c.sprite.setPosition(c.x, c.y);
+        wrapCloud(c, camera);
+    }
+}
 
-    Vector2u texSize = layer.texture.getSize();
+// ─── Небо ─────────────────────────────────────────────────────────────────────
 
-    // Параллакс: слой сдвигается медленнее камеры
-    float bgX = center.x * layer.parallax;
+void Background::drawSky(RenderWindow& window, const View& camera) {
+    if (!hasSky) return;
+    Vector2f cc = camera.getCenter();
+    Vector2f cs = camera.getSize();
+    Vector2u ts = skyTex.getSize();
 
-    // Прижимаем низ слоя к нижней части экрана
-    float screenBottom = center.y + half.y;
-    float layerTop = screenBottom - (float)texSize.y;
+    // Небо от поверхности вверх на 3 высоты экрана
+    float skyBottom = SURFACE_Y;
+    float skyHeight = cs.y * 3.f;
+    float skyTop = skyBottom - skyHeight;
+    float scaleY = skyHeight / (float)ts.y;
 
-    // Тайлим по X через setTextureRect с огромной шириной
-    float totalW = size.x + (float)texSize.x;  // чуть шире экрана
-    float startX = center.x - half.x - (float)texSize.x;
+    float offsetX = std::fmod((cc.x - WORLD_MID_X) * 0.04f, (float)ts.x);
+    if (offsetX < 0) offsetX += ts.x;
 
-    // Вычисляем смещение тайлинга
-    float offsetX = std::fmod(bgX + layer.scrollX, (float)texSize.x);
+    float startX = cc.x - cs.x * 0.5f - (float)ts.x;
+    int   copies = (int)(cs.x / ts.x) + 3;
 
-    Sprite spr(layer.texture);
-    spr.setColor(Color(255, 255, 255, (sf::Uint8)layer.opacity));
-
-    // Рисуем несколько копий текстуры, перекрывая весь экран по X
-    int copies = (int)(totalW / texSize.x) + 2;
+    Sprite spr(skyTex);
+    spr.setScale(1.f, scaleY);
     for (int i = 0; i < copies; ++i) {
-        float x = startX + i * (float)texSize.x - offsetX;
-        spr.setPosition(x, layerTop);
+        spr.setPosition(startX + i * (float)ts.x - offsetX, skyTop);
         window.draw(spr);
     }
 }
 
-void Background::render(RenderWindow& window, const View& camera) {
-    window.setView(camera);  // рисуем в мировых координатах
+// ─── Фоновый слой ────────────────────────────────────────────────────────────
+//
+// Ключевая формула Y-параллакса — lerp между позицией камеры и поверхностью:
+//
+//   renderBottomY = SURFACE_Y + (cc.y - SURFACE_Y) * parallaxY
+//
+// При parallaxY = 0: слой всегда у SURFACE_Y (неподвижен по Y)
+// При parallaxY = 1: слой движется вместе с камерой
+// При parallaxX == parallaxY: нет эффекта "разъезжания" — глубина без тошноты
 
-    drawGradient(window, camera);
-    for (auto& l : layers)
-        drawLayer(window, camera, l);
+void Background::drawLayer(RenderWindow& window, const View& camera,
+    const BgLayer& layer)
+{
+    Vector2f cc = camera.getCenter();
+    Vector2f cs = camera.getSize();
+    Vector2u ts = layer.texture.getSize();
+
+    // X параллакс
+    float offsetX = std::fmod((cc.x - WORLD_MID_X) * layer.parallaxX, (float)ts.x);
+    if (offsetX < 0) offsetX += ts.x;
+
+    // Y параллакс: нижний край слоя
+    float renderBottomY = cc.y + cs.y * 0.5f;
+    float renderTopY = renderBottomY - (float)ts.y;
+
+    float startX = cc.x - cs.x * 0.5f - (float)ts.x;
+    int   copies = (int)(cs.x / ts.x) + 3;
+
+    Sprite spr(layer.texture);
+    for (int i = 0; i < copies; ++i) {
+        spr.setPosition(startX + i * (float)ts.x - offsetX, renderTopY);
+        window.draw(spr);
+    }
+}
+
+void Background::drawClouds(RenderWindow& window, const View&) {
+    for (auto& c : clouds)
+        window.draw(c.sprite);
+}
+
+void Background::render(RenderWindow& window, const View& camera) {
+    window.setView(camera);
+    drawSky(window, camera);
+    for (auto& layer : layers)
+        drawLayer(window, camera, layer);
+    drawClouds(window, camera);
 }

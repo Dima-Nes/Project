@@ -40,7 +40,17 @@ bool Database::createTables() {
             PlayerX  REAL    DEFAULT 0,
             PlayerY  REAL    DEFAULT 0
         );
+        CREATE TABLE IF NOT EXISTS EnemyPositions (
+            Username TEXT NOT NULL,
+            Idx      INTEGER NOT NULL,
+            Type     INTEGER NOT NULL,
+            X        REAL NOT NULL,
+            Y        REAL NOT NULL,
+            PRIMARY KEY (Username, Idx)
+        );
     )";
+
+
 
     char* errMsg = nullptr;
     int rc = sqlite3_exec(db, sql, 0, 0, &errMsg);
@@ -149,4 +159,59 @@ bool Database::hasWorld(const std::string& username) {
     bool found = sqlite3_step(stmt) == SQLITE_ROW;
     sqlite3_finalize(stmt);
     return found;
+}
+bool Database::saveEnemies(const std::string& username,
+    const std::vector<EnemyRecord>& data)
+{
+    // удаляем старые
+    sqlite3_stmt* s;
+    sqlite3_prepare_v2(db,
+        "DELETE FROM EnemyPositions WHERE Username=?;", -1, &s, 0);
+    sqlite3_bind_text(s, 1, username.c_str(), -1, SQLITE_STATIC);
+    sqlite3_step(s); sqlite3_finalize(s);
+
+    const char* sql =
+        "INSERT INTO EnemyPositions (Username,Idx,Type,X,Y) VALUES(?,?,?,?,?);";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
+    for (int i = 0; i < (int)data.size(); ++i) {
+        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 2, i);
+        sqlite3_bind_int(stmt, 3, data[i].type);
+        sqlite3_bind_double(stmt, 4, data[i].x);
+        sqlite3_bind_double(stmt, 5, data[i].y);
+        sqlite3_step(stmt);
+        sqlite3_reset(stmt);
+    }
+    sqlite3_finalize(stmt);
+    return true;
+}
+
+bool Database::loadEnemies(const std::string& username,
+    std::vector<EnemyRecord>& data)
+{
+    data.clear();
+    const char* sql =
+        "SELECT Type,X,Y FROM EnemyPositions WHERE Username=? ORDER BY Idx;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
+    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        EnemyRecord r;
+        r.type = sqlite3_column_int(stmt, 0);
+        r.x = (float)sqlite3_column_double(stmt, 1);
+        r.y = (float)sqlite3_column_double(stmt, 2);
+        data.push_back(r);
+    }
+    sqlite3_finalize(stmt);
+    return !data.empty();
+}
+
+bool Database::hasEnemies(const std::string& username) {
+    const char* sql = "SELECT 1 FROM EnemyPositions WHERE Username=? LIMIT 1;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) return false;
+    sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
+    bool found = sqlite3_step(stmt) == SQLITE_ROW;
+    sqlite3_finalize(stmt); return found;
 }

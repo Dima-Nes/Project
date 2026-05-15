@@ -1,6 +1,8 @@
 #include "Game.h"
+#include <ctime>
 
 Game::Game() {
+    std::srand((unsigned)std::time(nullptr));
     VideoMode desktop = VideoMode::getDesktopMode();
     window.create(desktop, L"Курсовая работа", Style::Fullscreen);
     window.setFramerateLimit(60);
@@ -49,6 +51,7 @@ void Game::startPlay(bool forceNew) {
 void Game::run() {
     while (window.isOpen()) {
         float dt = frameClock.restart().asSeconds();
+        dt = std::min(dt, 1.f / 30.f);
         Event event;
 
         // ── 1. События ───────────────────────────────────────────────────────
