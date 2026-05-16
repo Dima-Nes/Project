@@ -1,25 +1,56 @@
 #include "Game.h"
 #include <ctime>
+#include <fstream>
+#include <iostream>
+
+// ─── Читаем индекс планеты из файла и сразу пишем следующий ─────────────────
+
+int Game::loadAndIncrementPlanetIdx() {
+    int idx = 0;
+    {
+        std::ifstream f("planet_idx.txt");
+        if (f.is_open()) f >> idx;
+    }
+    idx = ((idx % 9) + 9) % 9;     // гарантируем 0..8
+    {
+        std::ofstream f("planet_idx.txt");
+        f << (idx + 1) % 9;         // следующий запуск → следующая планета
+    }
+    return idx;
+}
+
+// ─── Конструктор ─────────────────────────────────────────────────────────────
 
 Game::Game() {
     std::srand((unsigned)std::time(nullptr));
+
     VideoMode desktop = VideoMode::getDesktopMode();
     window.create(desktop, L"Курсовая работа", Style::Fullscreen);
     window.setFramerateLimit(60);
 
+    // ── Планета ──────────────────────────────────────────────────────────────
+    int planetIdx = loadAndIncrementPlanetIdx();
+    planet = new PlanetBackground();
+    if (!planet->load(planetIdx))
+        std::cerr << "Game: planet " << planetIdx << " not loaded\n";
+
+    // ── База данных ───────────────────────────────────────────────────────────
     database = new Database();
     database->connect("users.db");
     database->createTables();
 
+    // ── Состояния (все получают указатель на планету) ─────────────────────────
     splash = new SplashState();
-    menu = new MainMenuState();
-    registration = new RegistrationState(database);
-    login = new LoginState(database);
-    gameMenu = new GameMenuState();
+    menu = new MainMenuState(planet);
+    registration = new RegistrationState(database, planet);
+    login = new LoginState(database, planet);
+    gameMenu = new GameMenuState(planet);
     play = nullptr;
 
     currentState = -1;
 }
+
+// ─── Деструктор ──────────────────────────────────────────────────────────────
 
 Game::~Game() {
     delete splash;
@@ -28,8 +59,11 @@ Game::~Game() {
     delete login;
     delete gameMenu;
     delete play;
+    delete planet;
     delete database;
 }
+
+// ─── startPlay ───────────────────────────────────────────────────────────────
 
 void Game::startPlay(bool forceNew) {
     if (forceNew)
@@ -48,13 +82,14 @@ void Game::startPlay(bool forceNew) {
     currentState = 4;
 }
 
+// ─── run ─────────────────────────────────────────────────────────────────────
+
 void Game::run() {
     while (window.isOpen()) {
         float dt = frameClock.restart().asSeconds();
         dt = std::min(dt, 1.f / 30.f);
         Event event;
 
-        // ── 1. События ───────────────────────────────────────────────────────
         while (window.pollEvent(event)) {
             if (event.type == Event::Closed) window.close();
 
@@ -91,15 +126,13 @@ void Game::run() {
             }
         }
 
-        // ── 2. Логика/анимации каждый кадр ───────────────────────────────────
-        if (currentState == 0) menu->updateLogic(window);         // ← анимации кнопок
-        if (currentState == 1) registration->updateLogic(window); // ← курсор
-        if (currentState == 2) login->updateLogic(window);        // ← курсор
-        if (currentState == 3) gameMenu->updateLogic(window);     // ← анимации кнопок
+        if (currentState == 0) menu->updateLogic(window);
+        if (currentState == 1) registration->updateLogic(window);
+        if (currentState == 2) login->updateLogic(window);
+        if (currentState == 3) gameMenu->updateLogic(window);
         if (currentState == 4 && play) play->updateLogic(window, dt);
 
-        // ── 3. Рендер ────────────────────────────────────────────────────────
-        window.clear(Color(30, 30, 30));
+        window.clear(Color(18, 18, 24));
         if (currentState == -1) splash->render(window);
         else if (currentState == 0) menu->render(window);
         else if (currentState == 1) registration->render(window);

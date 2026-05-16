@@ -139,6 +139,7 @@
     <ClCompile Include="LoginState.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainMenuState.cpp" />
+    <ClCompile Include="PlanetBackground.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="PlayState.cpp" />
     <ClCompile Include="RegistrationState.cpp" />
@@ -156,6 +157,7 @@
     <ClInclude Include="HUD.h" />
     <ClInclude Include="LoginState.h" />
     <ClInclude Include="MainMenuState.h" />
+    <ClInclude Include="PlanetBackground.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="PlayState.h" />
     <ClInclude Include="RegistrationState.h" />

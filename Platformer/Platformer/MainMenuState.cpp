@@ -1,83 +1,72 @@
 ﻿#include "MainMenuState.h"
-#include <iostream>
 
-using namespace std;
-
-MainMenuState::MainMenuState() {
+MainMenuState::MainMenuState(PlanetBackground* planet) : planet(planet) {
     if (!mainFont.loadFromFile("assets/font.ttf"))
-        cout << "ERROR: Font not found in assets folder!" << endl;
+        return;
 
-    float centerX = VideoMode::getDesktopMode().width / 2.0f;
+    float W = (float)VideoMode::getDesktopMode().width;
+    float H = (float)VideoMode::getDesktopMode().height;
+    float cx = W / 2.f;
 
-    loginBtn.setFont(mainFont);
-    loginBtn.setString(L"Вход");
-    loginBtn.setCharacterSize(60);
-    loginBtn.setFillColor(Color::White);
-    loginBtn.setPosition(centerX, 400.0f);
-    centerText(loginBtn);
+    // Кнопки опущены ниже — начинаются с 55% высоты экрана
+    float startY = H * 0.42f;
+    float gap = 110.f;
 
-    registerBtn.setFont(mainFont);
-    registerBtn.setString(L"Регистрация");
-    registerBtn.setCharacterSize(60);
-    registerBtn.setFillColor(Color::White);
-    registerBtn.setPosition(centerX, 550.0f);
-    centerText(registerBtn);
+    auto setup = [&](Text& t, const wchar_t* s, float y) {
+        t.setFont(mainFont);
+        t.setString(s);
+        t.setCharacterSize(58);
+        t.setFillColor(Color::White);
+        t.setPosition(cx, y);
+        centerText(t);
+        };
 
-    exitBtn.setFont(mainFont);
-    exitBtn.setString(L"Выход");
-    exitBtn.setCharacterSize(60);
-    exitBtn.setFillColor(Color::White);
-    exitBtn.setPosition(centerX, 700.0f);
-    centerText(exitBtn);
+    setup(loginBtn, L"Вход", startY);
+    setup(registerBtn, L"Регистрация", startY + gap);
+    setup(exitBtn, L"Выход", startY + gap * 2);
 }
 
-void MainMenuState::centerText(Text& text) {
-    FloatRect textRect = text.getLocalBounds();
-    text.setOrigin(textRect.left + textRect.width / 2.0f,
-        textRect.top + textRect.height / 2.0f);
+void MainMenuState::centerText(Text& t) {
+    FloatRect r = t.getLocalBounds();
+    t.setOrigin(r.left + r.width / 2.f, r.top + r.height / 2.f);
 }
-
-// ─── updateLogic — вызывается каждый кадр из Game.cpp ────────────────────────
 
 void MainMenuState::updateLogic(RenderWindow& window) {
     float dt = animClock.restart().asSeconds();
-
     Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
     Text* buttons[] = { &loginBtn, &registerBtn, &exitBtn };
 
     for (auto* btn : buttons) {
-        bool  hovered = btn->getGlobalBounds().contains(mouse);
-        float targetScale = hovered ? 1.2f : 1.0f;
-        Color targetColor = hovered ? Color::Yellow : Color::White;
+        bool  hov = btn->getGlobalBounds().contains(mouse);
+        float ts = btn->getScale().x + ((hov ? 1.15f : 1.f) - btn->getScale().x) * 8.f * dt;
+        btn->setScale(ts, ts);
 
-        float s = btn->getScale().x + (targetScale - btn->getScale().x) * 8.0f * dt;
-        btn->setScale(s, s);
-
-        Color c = btn->getFillColor();
+        Color tgt = hov ? Color::Yellow : Color::White;
+        Color cur = btn->getFillColor();
         btn->setFillColor(Color(
-            (sf::Uint8)(c.r + (targetColor.r - c.r) * 8.0f * dt),
-            (sf::Uint8)(c.g + (targetColor.g - c.g) * 8.0f * dt),
-            (sf::Uint8)(c.b + (targetColor.b - c.b) * 8.0f * dt)
+            (sf::Uint8)(cur.r + (tgt.r - cur.r) * 8.f * dt),
+            (sf::Uint8)(cur.g + (tgt.g - cur.g) * 8.f * dt),
+            (sf::Uint8)(cur.b + (tgt.b - cur.b) * 8.f * dt)
         ));
     }
 }
-
-// ─── update — только события/клики ───────────────────────────────────────────
 
 int MainMenuState::update(RenderWindow& window, Event& event) {
     if (event.type != Event::MouseButtonPressed) return 0;
     if (event.mouseButton.button != Mouse::Left)  return 0;
 
     Vector2f mouse = window.mapPixelToCoords(Mouse::getPosition(window));
-
     if (loginBtn.getGlobalBounds().contains(mouse))    return 1;
     if (registerBtn.getGlobalBounds().contains(mouse)) return 2;
     if (exitBtn.getGlobalBounds().contains(mouse)) { window.close(); }
-
     return 0;
 }
 
 void MainMenuState::render(RenderWindow& window) {
+    // 1. Планета
+    if (planet) planet->render(window);
+
+    // 2. Кнопки поверх
     window.draw(loginBtn);
     window.draw(registerBtn);
     window.draw(exitBtn);
